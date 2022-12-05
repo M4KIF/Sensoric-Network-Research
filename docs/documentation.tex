@@ -1,4 +1,26 @@
-\documentclass{article}
+\documentclass[a4paper, 12pt, leqno]{book} % [rodzjaj papieru, wielkość czcionki, numeracja równań po lewej, a nie po prawej], typ dokumentu: książka
+
+\usepackage[polish]{babel} % polski słownik
+\usepackage[T1]{fontenc} % polskie znaki
+\usepackage{blindtext} % lorem ipsum
+\usepackage[a4paper, left=1cm, right=2cm, top=3cm, bottom=3cm, bindingooffset=2cm]{geometry} % marginesy, bind. - poszerzenie lewego marginesu do sklejania książki
+\usepackage{hyperref} % aktywne odnośniki
+\usepackage{bm} % równania matematyczne
+\usepackage{amssymb} % dodatkowe symbole
+\pagestyle{empty} % zmiana numeracji stron, schowane nazwy rozdziałów
+\usepackage{indentfirst} % europejski system wcięć i akapitów
+\usepackage{amsmath} % równania matematyczne
+\everymath{\displaystyle} % jednorodny wygląd równań (np. bez oszczędzania miejsca w tekście)
+\usepackage{enumerate} % wyliczenia, wypunktowania
+\usepackage{graphicx} % grafika, obracanie, skalowanie grafiki/tekstu
+\usepackage{float} % grafika umieszczona w konkretnym miejscu
+\usepackage{sidecap} % podpis obok obrazka, a nie pod nim
+\usepackage{xcolor} % kolory
+\usepackage{makeidx} % indeksy
+\makeindex % indeksy
+
 \begin{document}
-The basic section of the main LaTeX doc.
-\end{document}
+\title{Sensoric-Networks-Research}
+\author{Karolina Binka, Jakub Koterba, Maciej Wrona, Hubert Wilga, Mateusz Tężyński}
+\date{\today} 
+\maketitle % koniec strony tytułowej
