@@ -1,0 +1,29 @@
+Maksymalizacja czasu życia sieci sensorycznych - bibliografia
+
+Sieć sensoryczna - sieć składające się z rozproszonych, autonomicznych urządzeń, integrujacych w sobie urządzenie pomiarowe i nadajnik/odbiornik radiowy
+
+Problemy w sieciach sensorycznych:
+
+- optymalny stopień pokrycia obszaru
+- przekazywanie danych
+- energooszczędne i efektywne routowanie i klastrowanie węzłów
+- klaster(do słowniczka)
+- lokalizowanie sensorów i węzłów (Find Nearest Neighbour)
+
+Czas życia sieci - 
+
+Maximum Lifetime Scheduling
+in Wireless Sensor Networks - Akshaye Dhawan =
+(Wprowadza do tematyki sieci sensorycznych i porusza problematykę maksymalizacji czasu życia. Wyjaśnia czynniki, które mają na ten czas bespośredni wpływ, oraz prowadzi próbę rozwiązania kwestii wykładniczego stopnia złożoności prostego algorytmu routingu, oparted o graf zależności życia (ZŻ))
+
+Nature-Inspired Algorithms for Wireless Sensor Networks: A
+Comprehensive Survey - Abhilash Singha
+, Sandeep Sharmab,
+, Jitendra Singh =
+(Podkreśla, że w dobie zapotrzebowania na dobrą optymalizację czasu życia sieci sensorycznej, poznane algorytmy inspirowane naturą potrafią zapewniać bardzo obiecujące rezultaty. Zaznacza, jak krytyczne jest zadbanie o odpowiedni poziom pokrycia, który okazuje się drogą do dalszego poprawiania czasu pracy. Porusza i opisuje 4 możliwe elementy procesu działania sieci, których optymalizacja przynosi zauważalne efekty, są to: pokrycie, propagowanie danych, klastrowanie i routing, lokalizacja sensorów. Opisuje również od podstaw proces optymalizacji na zasadzie algorytmów stochastycznych i deterministycznych. Stochstyki zaś dzielone są na heurystyki i metaheurystkyki. Tym sposobem, tematyka poruszana zmierza w stronę alg. ins. naturą)
+
+A genetic algorithm-based energy-aware
+multi-hop clustering scheme for
+heterogeneous wireless sensor networks - R. Muthukkumar, Lalit Garg, K. Maharajan, M. Jayalakshmi, Nz. Jhanjhi, S. Parthiban and G. Saritha =
+(Autorzy, korzystając z algorytmów genetycznych, klastrowania i metody multi-hop, starają się zbadać, czy metoda przynosi efekty w dziedzinie optymalizacji czasu życia sieci sensorycznej. Badanie jest prowadzone obszernie, poprzez porównania do innych znanych metod optymalizacji. Wyniki, podane są z prowadzonej programowej symulacji działania sieci.)
+
