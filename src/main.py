@@ -12,7 +12,7 @@
 ###########
 
 # Main app structure
-from window import window_gui
+from packages.window import window_gui
 
 #################
 # Main function #
