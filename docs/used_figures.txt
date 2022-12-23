@@ -1,0 +1,4 @@
+From Salim_2021_IOP_Conf._Ser.__Mater._Sci._Eng._1152_012022 I have taken
+the energy usage values.
+And from Energy Consumption in Wireless Sensor Network.pdf i am taking the
+approaches of maximising the lifetime expectancy of the WSN.

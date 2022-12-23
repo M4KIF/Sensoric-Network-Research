@@ -17,3 +17,12 @@ from .. import misc
 
 # For enabling the multithreading in the main App by using signals
 from PyQt5 import QtCore
+
+#
+# Object definition #
+#
+
+class NetworkSimulator():
+
+    def __init__(self):
+        print()
