@@ -22,10 +22,6 @@
 
 from threading import Lock, Thread
 
-#####################
-# Object definition #
-#####################
-
 class EnergyUsageMeta(type):
 
     _instances = {}
@@ -50,5 +46,30 @@ class EnergyUsage(metaclass=EnergyUsageMeta):
     def some_business_logic(self):
         print()
 
-class energy_usage():
 
+#########################################
+# Mean energy usage figures based on    #
+# an article titled "Power consumption  #
+# measurements of WSN based on Arduino" #
+# by U T Salim et al 2021 IOP Conf.     #
+# Ser.: Mater. Sci. Eng. 1152 012022    #
+#########################################
+
+
+
+###################
+# Variables in mW #
+###################
+
+# Energy that transmitting the data take
+transmiter_action = 650
+
+# Energy that data receiving take
+receiver_action = 500
+
+# Energy that the sensors take while collecting data
+sensors_action = 350
+
+# Energy that either sensing data/receiving/transmitting/
+# neighbour_locating calculations take
+computing_action = 250
