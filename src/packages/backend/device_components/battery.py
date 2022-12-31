@@ -4,7 +4,10 @@
 # inside the WSN node, and the base station #
 #############################################
 
-
+# mo - member object
+# ml - member list
+# mv - member variable
+# mb - member boolean
 
 #####################
 # Object definition #
@@ -19,12 +22,12 @@ class Battery():
 
 
     # A value of charge that a fully chareged cell contains in mAH,
-    # not using Wh because the voltage in WSN nodes is constant per 
-    # device elements
-    typical_capacity = 2000
+    # not using Wh for simplicity
+    mv_MaxCapacityMah = None
+    mv_MaxCapacityMa = None
 
     # Updated constantly
-    current_capacity = None
+    mv_CurrentCapacity = None
 
 
     ###########
@@ -32,14 +35,43 @@ class Battery():
     ###########
 
 
-    def __init__(self):
-        self.current_capacity = self.typical_capacity
+    def __init__(self, capacity=2000):
+        
+        # Calling the default capacity setter
+        self.set_battery_capacity(capacity)
+
+        # Updating the current capacity to the max value
+        self.mv_CurrentCapacity = self.mv_MaxCapacityMa
 
 
-    def subtract_energy(self, amount=float, time=float):
+    # A simple battery capacity setter
+    def set_battery_capacity(self, capacity=int):
+        self.mv_MaxCapacityMah = capacity
 
-        # Subtracting the energy used by multiplying the amperage by time spent
-        self.current_capacity -= amount * time
+        # The amount of mA that the cell can supply in its lifetime
+        self.mv_MaxCapacityMa = self.mv_MaxCapacityMah * 3600
+
+
+    # Battery capacity getter in mah
+    def get_battery_mv_MaxCapacityMah(self):
+        return self.mv_MaxCapacityMah
+
+
+    # Battery capacity getter in ma
+    def get_battery_mv_MaxCapacityMa(self):
+        return self.mv_MaxCapacityMa
+
+
+    # Battery capacity getter in ma
+    def get_battery_mv_CurrentCapacity_ma(self):
+        return self.mv_CurrentCapacity
+
+
+    # Function that effectively discharges the cell
+    def subtract_energy(self, amount):
+
+        # Subtracting the energy used by the node, after calculating it in the energy management module
+        self.mv_CurrentCapacity -= amount
 
 
     

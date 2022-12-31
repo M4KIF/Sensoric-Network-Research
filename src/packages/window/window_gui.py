@@ -10,7 +10,7 @@
 ############
 
 # Elements for running the simulation
-from ..packages.backend import network_simulator
+from ..backend import network_simulator
 #from backend import misc
 #from backend import network_simulator
 

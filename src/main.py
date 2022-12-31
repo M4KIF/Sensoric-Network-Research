@@ -12,14 +12,14 @@
 ###########
 
 # Main app structure
-from packages.window import window_gui
+from packages.window import window_gui as gui
 
 #################
 # Main function #
 #################
 
 def main():
-    print()
+    print("Is it okey?")
 
 if __name__ =="__main__":
     main()

@@ -57,19 +57,19 @@ class EnergyUsage(metaclass=EnergyUsageMeta):
 
 
 
-###################
-# Variables in mW #
-###################
+#################################
+# Variables in mA, mW / Voltage #
+#################################
 
 # Energy that transmitting the data take
-transmiter_action = 650
+transmiter_action = 650 / 5
 
 # Energy that data receiving take
-receiver_action = 500
+receiver_action = 500 / 5
 
 # Energy that the sensors take while collecting data
-sensors_action = 350
+sensors_action = 350 / 5
 
 # Energy that either sensing data/receiving/transmitting/
 # neighbour_locating calculations take
-computing_action = 250
+computing_action = 250 / 5

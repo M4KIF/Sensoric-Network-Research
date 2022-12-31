@@ -1,1 +1,1 @@
-from network_simulator import *
+from .network_simulator import *

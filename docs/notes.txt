@@ -1,0 +1,20 @@
+From Salim_2021_IOP_Conf._Ser.__Mater._Sci._Eng._1152_012022 I have taken
+the energy usage values.
+And from Energy Consumption in Wireless Sensor Network.pdf i am taking the
+approaches of maximising the lifetime expectancy of the WSN.
+
+For using any decentralised methods I have to emulate the presence of the NNS (Nearest neighbour seeking) in the code. It will be done with the use of the list of nodes in the simulator. By that, a few of the nodes that meet the criteria will be given for the node to add to the list of neighbours. The usage of calculation needed for neighbour seeking will be count as the amount of neighbours given in the list * the calculation energy.
+
+The list of all of the nodes will be placed in the WSN object, as it is the top "parent" object. There is one problem tho, the proccess can be optimised with a quadtree, that would help with giving the correct "neighbours" list for the given nodes. Another solution is very brute force. To throw out the task to threads and just crunch through the numbers.
+
+And It will be all distributed at the startup(__init__) of the network. Later on, I will create and implement some algorithms that will steer the network. The current implementation techniques should enable both centralised and decentralised algorithms to work correctly.
+
+Whole simulation will be visualised simply using matplotlib and some basic plots(fe. 
+coordinate system with dots as nodes of the sensoric network, while a green do is a node, red one is a sink node and a blue one is the one currently used)
+
+And all of the commands will be sent from the main WSN object. I guess, that such commands will be minimised to sending a pulse to all active nodes that they should collect the data by every minute or so and receiving an information about low battery level from a sensor, so the network can react and reorganise the "active nodes" list, so basicly,
+it will be something like: a sensor starts to loose the charge and the network chooses the closest one to be its successor and then reinitialieses all of the needed sensors to teach them the new layout of the network
+
+Of course, everything will be adapted to the likes of a simulation, so as We won't have to wait hours before it ends.
+
+
