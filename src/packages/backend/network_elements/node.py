@@ -30,15 +30,15 @@ def Node():
     # Objects #
     ###########
 
-    # Contains the logic unit of the node
-    mo_SOC = None
+    # Initialising the SOC functionality and setting the battery capacity
+    mo_SOC = components.SOC(500)
 
     #############
     # Variables #
     #############
 
     # Conatains the list of nodes that are close by and can be accessed
-    ml_AdjacentNodesList = []
+    ml_AdjacentNodes = []
 
     # A list that contains the data collected from the sensor/s
     ml_Data = []
@@ -75,12 +75,11 @@ def Node():
     #######################
 
     def __init__(self, localisation=None):
-        
-        # Initialising the SOC functionality and setting the battery capacity
-        self.mo_SOC = components.SOC(500)
 
+        # Sets the location of the node
         self.md_Location = localisation
 
+        # The default "low battery" warning threshold
         self.mv_BatteryLowThreshold = 20
 
 
@@ -139,22 +138,29 @@ def Node():
     # Adds the neighbour to the list of neighbours after validation
     def add_neighbour(self, node=Node()):
         
-        self.ml_AdjacentNodesList.append(node)
+        self.ml_AdjacentNodes.append(node)
 
 
     # Simulates data collection
     def collect_data(self):
-        print()
+
+        # Sends the signal to SOC to take care of data collection and energy management
+        self.mo_SOC.collect_sensor_data()
 
 
     # Receives the data packet
     def receive_data(self):
-        print()
+
+        # Sends the signal to SOC that It has to receive the data wirelesly
+        # of course, energy management is obvious
+        self.mo_SOC.receive_data()
 
 
     # Transmits the data packet
     def transmit_data(self):
-        print()
+
+        # Informs the SOC that It has to follow through the transmission procedures
+        self.mo_SOC.transmit_data()
 
     
 
