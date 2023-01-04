@@ -7,6 +7,8 @@
 
 # mo - member object
 # ml - member list
+# md - member dictionary
+# mt - member tuple
 # mv - member variable
 # mb - member boolean
 
