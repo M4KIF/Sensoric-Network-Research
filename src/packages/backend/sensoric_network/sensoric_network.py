@@ -132,6 +132,3 @@ class SensoricNetwork():
     def setup_network(self):
         print()
 
-
-    #
-
