@@ -6,6 +6,7 @@
 # from which it will be taken to the research centre       #
 ############################################################
 
+
 # mo - member object
 # ml - member list
 # md - member dictionary
@@ -13,17 +14,21 @@
 # mv - member variable
 # mb - member boolean
 
+
 ############
 # Includes #
 ############
+
 
 import math
 import shapely
 from .. import device_components as dc
 
+
 #####################
 # Object definition #
 #####################
+
 
 class Node():
 
@@ -34,50 +39,74 @@ class Node():
     # Initialising the SOC functionality and setting the battery capacity
     mo_SOC = dc.SOC()
 
-    #############
-    # Variables #
-    #############
+    #####################
+    # Node Localisation #
+    #####################
 
-    # Conatains the list of nodes that are within range, using python's id()
-    ml_AdjacentNodes = []
-
-    # Sink node
-    mv_SinkNode = None
-
-    # A dictionary that contains the location of the sensor in 2 dimensions
+    # A point that contains the coordinates of this sensor node
     mv_Location = shapely.Point(0,0)
 
     # Contains the range of a node in meters, defaults to 150m
-    mv_Range = 150
+    mv_Range = 250
 
     # Contains the area that the node can access
-    mv_RangeArea = mv_Location.buffer(mv_Range)
+    mv_Coverage = mv_Location.buffer(mv_Range)
+
+    ###########################
+    # Other nodes information #
+    ###########################
+
+    # Can contain tuples of information, node and needed hops
+
+    # Conatains the list of nodes that are within range
+    ml_AdjacentNodes = []
+
+    # Contains the information about aggregating nodes
+    ml_AggregatingNodes = []
+
+    # Contains the information about sink nodes
+    ml_SinkNodes = []
+
+    ###########################
+    # Node settings variables #
+    ###########################
+
+    # The threshold at which node indicates low battery level warning
+    mv_BatteryLowThreshold = None
+
+    #################
+    # Miscellaneous #
+    #################
 
     # This node's id
     mv_ID = None
 
-    # The sink node id, for validating if the data can be reached
+    # The sink node id
     mv_SinkID = None
-
-    # The threshold at which node indicates low battery level warning
-    # used mainly for sink nodes, as they have to live a bit longer to
-    # catch all the data from the other nodes
-    mv_BatteryLowThreshold = None
 
     ############
     # Booleans #
     ############
 
-    # Set only, if this exact node is pointed out as the sink node for the whole network or a certain group
-    mb_IsSink = False
+    # Activated only if this node is a sink
+    mb_Sink = False
+
+    # Activated only if this node is an aggregating node
+    mb_Aggregating = False
+
+    # Activated only if this node is the sensing node
+    mb_Sensing = False
 
     # Set only if the battery level reaches 20%, so as the network can try and deal with this situation
-    mb_BatteryLow = False
+    mb_LowBattery = False
+
 
     #######################
     # Methods definitions #
     #######################
 
+
+    # Initialises the node with needed data, ie. its battery capacity, location, and possibly id
     def __init__(self, battery_capacity=int(100), x=int(0), y=int(0), node_id=int):
 
         # Sets the location of the node
@@ -91,6 +120,8 @@ class Node():
         # The default "low battery" warning threshold
         self.mv_BatteryLowThreshold = 20
 
+        print(self.mv_Coverage.area)
+
 
     # Localizes the node in the environment, a simulation of an gps module
     def set_localization(self, x=int, y=int):
@@ -100,11 +131,8 @@ class Node():
 
 
     # Sets the id of a sink node
-    def set_sink_node(self, sink=None):
-        self.mv_SinkID = id(sink)
-
-        if self.mv_SinkID == self.mv_ID:
-            self.mb_IsSink = True
+    def add_sink_node(self, sink=None):
+        self.ml_SinkNodes.append(sink)
 
 
     # Sends the battery low warning to all nodes that have been found
@@ -127,7 +155,7 @@ class Node():
 
 
     def get_range_area(self):
-        return self.mv_RangeArea
+        return self.mv_Coverage
 
 
     def get_battery_level(self):

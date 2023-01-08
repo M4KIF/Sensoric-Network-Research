@@ -28,3 +28,4 @@ class NetworkSimulator():
 
     def __init__(self):
         self.m_Network.initiate_network(200, 500)
+        self.m_Network.naive_algorithm()

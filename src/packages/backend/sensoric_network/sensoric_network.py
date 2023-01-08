@@ -1,7 +1,12 @@
 
-##########################################
-# Fully equipped sensoric network object #
-##########################################
+############################################
+# Sensoric network object, containing all  #
+# nodes and informations needed for the    #
+# network to work. It implements different #
+# approaches to the WSN coverage problem,  #
+# a naive one for comparsion and the       #
+# Particle Swarm Optimisation techniques   #
+############################################
 
 
 
@@ -9,26 +14,28 @@
 # Includes #
 ############
 
+
 # For enabling the network functions
 from .. import network_elements as components
 import random
 import shapely
 
 
+#####################
+# Object definition #
+#####################
+
+
 class SensoricNetwork():
 
     ###########
-    # Objects #
+    # Approaches choice variables #
     ###########
-
-    #############
-    # Variables #
-    #############   
 
     # List containing the possible solutions to the problem of maximisation of the lifetime expectancy
     ml_SolutionType = ["Centralised", "Decentralised"]
 
-    # Proposed algorithms for the centralised approach, dispatched by this object
+        # Proposed algorithms for the centralised approach, dispatched by this object
     # assuming that it is a gateway of the whole WSN. This object is then responsible for 
     # simulating the data collection functionality and all of the management
     ml_CentralisedAlgorithms = ["naive"]
@@ -39,6 +46,33 @@ class SensoricNetwork():
     # The data transmission will recursive with limited amount of hops to transfer the data to the sink
     ml_DecentralisedAlgorithms = []
 
+
+    # List containing the names of the implemented approaches to improving the lifetime of a WSN
+    ml_Algorithms = ["naive", "Particle-Swarm-Optimisation"]
+
+    #####################
+    # Network variables #
+    #####################
+
+    # Contains the area polygon
+    mv_Area = None
+
+    # The amount of the nodes
+    mv_NodeAmount = None
+
+    # The minimum percentile value of the area that the WSN has to cover
+    mv_MinimumCoverage = None
+
+    # The current value that the network covers
+    mv_CurrentCoverage = None
+
+    # Cell capacity of the nodes
+    mv_BatteryCapacity = None
+
+    ######################
+    # Nodes, Groups etc. #
+    ######################
+
     # List of all of the sinks that are currently used in any of the solutions
     ml_SinkNodes = []
 
@@ -48,26 +82,12 @@ class SensoricNetwork():
     # Possibly used for algorithms using grouping as an optimisation
     ml_GroupsOfNodes = []
 
-    # Contains the area polygon
-    mv_Area = None
-
-    # The minimum percentile value of the area that the WSN has to cover
-    mv_MinimumCoverage = None
-
-    # The current value that the network covers
-    mv_CurrentCoverage = None
+    #################
+    # Miscellaneous #
+    #################
 
     # Stores the "uptime" of the network
     mv_Lifetime = None
-
-    # The amount of the nodes
-    mv_NodeAmount = None
-
-    # Cell capacity of the nodes
-    mv_BatteryCapacity = None
-
-    # Currently used sollution
-    mv_CurrentSollution = None
 
     # Currently used algorithm
     mv_CurrentAlgorithm = None
@@ -105,7 +125,8 @@ class SensoricNetwork():
 
     # A constructor. Takes the amount of nodes,
     # battery capacity, lower left and upper right point of the area covered by sensors as params
-    def __init__(self, node_amount=int(10), battery_capacity=int(500), x_l=int(0), y_l=int(0), x_u=int(1000), y_u=int(1000), minimum_coverage=int(80)):
+    def __init__(self, node_amount=int(10), battery_capacity=int(500),
+    x_l=int(0), y_l=int(0), x_u=int(1000), y_u=int(1000), minimum_coverage=int(80)):
 
         # Setting a list of points temporarily, in order to create a polygon
         polygon_points_list = [shapely.Point(x_l, y_l), shapely.Point(x_u, y_l), shapely.Point(x_u, y_u), shapely.Point(x_l, y_u)]
@@ -116,37 +137,39 @@ class SensoricNetwork():
         # Setting the coverage value
         self.set_minimum_coverage_value(minimum_coverage)
 
-        # Setting the currently used sollution
-        self.mv_CurrentSollution = self.ml_SolutionType[0]
+        # Setting the nodes amount
+        self.set_node_amount(node_amount)
+
+        # Setting default battery capacity
+        self.set_node_battery_capacity(battery_capacity)
 
         # Setting the default algorithm to be the centralised naive
-        self.mv_CurrentAlgorithm = self.ml_CentralisedAlgorithms[0]
+        self.mv_CurrentAlgorithm = self.ml_Algorithms[0]
 
 
-    #
+    # Sets the nodes amount
     def set_node_amount(self, amount):
         self.mv_NodeAmount = amount
 
 
+    # Sets the battery capacity in mAH
     def set_node_battery_capacity(self, capacity):
         self.mv_BatteryCapacity = capacity
 
 
-    def set_area(self, area=[{"x":0,"z":0}, {"x":0,"z":0}]):
+    # Changes the area of the network
+    def set_area(self, x_l=int, y_l=int, x_u=int, y_u=int):
 
-        # Setting the points from lower left, to upper right
-        for i in range(2):
-            self.ml_Area[i]["x"] = area[i]["x"]
-            self.ml_Area[i]["y"] = area[i]["y"]
+        # Setting a list of points temporarily, in order to create a polygon
+        polygon_points_list = [shapely.Point(x_l, y_l), shapely.Point(x_u, y_l), shapely.Point(x_u, y_u), shapely.Point(x_l, y_u)]
+
+        # Creating a polygon out of the points from above
+        self.mv_Area = shapely.Polygon([[p.x, p.y] for p in polygon_points_list])
 
 
+    # Changes the minimum coverage value
     def set_minimum_coverage_value(self, percent_of_area=int):
         self.mv_MinimumCoverage=percent_of_area
-
-
-    # Assigns the neighbours to all of the nodes
-    def set_neighbours(self):
-        print()
 
 
     # Setting a sink node
@@ -189,18 +212,40 @@ class SensoricNetwork():
 
 
     def naive_algorithm(self):
+
+        #####################################
+        # Nodes setup, searching for a sink #
+        #####################################
+
+        # Contains a circle in which a sink has to be found
+        possible_sink_location = self.mv_Area.point_on_surface().buffer(250)
+
+        # Current lowest distance from the middle point
+        lowest_distance = None
+        sink = None
+
         for node in self.ml_Nodes:
-            node.collect_data()
-            node.send_data()
+            if shapely.contains_xy(possible_sink_location, node.get_localization().coords[:]):
 
-            for sink_node in self.ml_SinkNodes:
-                if id(node.get_sink_node()) == id(sink_node):
-                    sink_node.receive_data()
+                # Calculating the distance between middle of the area and a node
+                temp = shapely.distance(self.mv_Area.point_on_surface(), node.get_localization())
+
+                if lowest_distance == None:
+                    lowest_distance = temp
+                    sink = node
                 else:
-                    continue
+                    
+                    if temp < lowest_distance:
+                        lowest_distance = temp
+                        sink = node
 
-            self.calculate_coverage()
+        for node in self.ml_Nodes:
 
+            # Setting the sink node in the other nodes
+            node.add_sink_node(sink)
+
+        # Searching a path to the sink node via shapely functions
+        
 
 
     def run_simulation(self):

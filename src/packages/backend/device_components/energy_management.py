@@ -43,6 +43,23 @@ class EMU():
     # achieve the mA energy consumption     #
     #########################################
 
+    # In mA, I should add the transmission power options to the energy consumption,
+    # as with the distance of the transmission the power requirements change in 
+    # steps, co a 100m transmission can draw even more than 2 times less power than fe. 200m transmission
+
+    #
+    md_TrasmissionPowerLevels = {
+        "1":4,
+        "3":5,
+        "7":6,
+        "11":7,
+        "15":7.6,
+        "19":8.4,
+        "23":9,
+        "27":10,
+        "31":10.4
+    }
+
     # Energy that transmitting the data take
     mv_TransmiterActionConsumption = 20
 
@@ -77,6 +94,10 @@ class EMU():
         self.mo_Battery = Battery(capacity_mah)
 
 
+    def ack_transmission_consumption(self, power_level=str):
+        return self.md_TrasmissionPowerLevels[power_level]
+
+
     # Calculates the signal propagation time
     def calculate_signal_propagation_delay(self, distance=float):
 
@@ -90,7 +111,18 @@ class EMU():
         time+=self.calculate_signal_propagation_delay(distance)
 
         # Substracting from the battery
-        self.mo_Battery.subtract_energy(self.mv_TransmiterActionConsumption * data_size/transmission_rate)
+        if distance < 50:
+            self.mo_Battery.subtract_energy(4 * self.ack_transmission_consumption("1")*368/transmission_rate)
+
+            self.mo_Battery.subtract_energy(self.md_TrasmissionPowerLevels["1"] * data_size/transmission_rate)
+        elif distance > 50 and distance < 200:
+            self.mo_Battery.subtract_energy(4 * self.ack_transmission_consumption("15")*368/transmission_rate)
+
+            self.mo_Battery.subtract_energy(self.md_TrasmissionPowerLevels["15"] * data_size/transmission_rate)
+        elif distance > 200:
+            self.mo_Battery.subtract_energy(4 * self.ack_transmission_consumption("31")*368/transmission_rate)
+
+            self.mo_Battery.subtract_energy(self.md_TrasmissionPowerLevels["31"] * data_size/transmission_rate)
 
 
     # Calculates the energy consumed while receiving data
@@ -99,6 +131,9 @@ class EMU():
         # Adding the propagation delay to the time
         time+=self.calculate_signal_propagation_delay(distance)
         
+        #
+        self.mo_Battery.subtract_energy(4 * self.ack_transmission_consumption("15")*368/transmission_rate)
+
         # Substracting from the battery
         self.mo_Battery.subtract_energy(self.mv_ReceiverActionConsumption * data_size/transmission_rate)
 
