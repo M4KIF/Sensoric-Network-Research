@@ -18,42 +18,43 @@
 ############
 
 import math
-from .. import device_components as components
+import shapely
+from .. import device_components as dc
 
 #####################
 # Object definition #
 #####################
 
-def Node():
+class Node():
 
     ###########
     # Objects #
     ###########
 
     # Initialising the SOC functionality and setting the battery capacity
-    mo_SOC = components.SOC(500)
+    mo_SOC = dc.SOC()
 
     #############
     # Variables #
     #############
 
-    # Conatains the list of nodes that are close by and can be accessed
+    # Conatains the list of nodes that are within range, using python's id()
     ml_AdjacentNodes = []
 
-    # A list that contains the data collected from the sensor/s
-    ml_Data = []
+    # A dictionary that contains the location of the sensor in 2 dimensions
+    mv_Location = shapely.Point(0,0)
 
-    # A dictionary that contains the location of the current sensor
-    md_Location = {
-        "x": 0,
-        "z": 0
-    }
+    # Contains the range of a node in meters, defaults to 150m
+    mv_Range = 150
+
+    # Contains the area that the node can access
+    mv_RangeArea = mv_Location.buffer(mv_Range)
 
     # This node's id
     mv_ID = None
 
     # The sink node id, for validating if the data can be reached
-    mv_SinkNodeID = None
+    mv_SinkID = None
 
     # The threshold at which node indicates low battery level warning
     # used mainly for sink nodes, as they have to live a bit longer to
@@ -74,20 +75,33 @@ def Node():
     # Methods definitions #
     #######################
 
-    def __init__(self, localisation=None):
+    def __init__(self, battery_capacity=int(100), x=int(0), y=int(0), node_id=int):
 
         # Sets the location of the node
-        self.md_Location = localisation
+        self.mv_Location = shapely.Point(x, y)
+
+        # Sets current node id
+        self.mv_ID = node_id
+
+        print(self.mv_Location.coords[:])
 
         # The default "low battery" warning threshold
         self.mv_BatteryLowThreshold = 20
 
 
     # Localizes the node in the environment, a simulation of an gps module
-    def set_localization(self, localisation=dict):
+    def set_localization(self, x=int, y=int):
         
         # Setting the device localisation
-        self.md_Location = localisation
+        self.md_Location = shapely.Point(x, y)
+
+
+    # Sets the id of a sink node
+    def set_sink_node_id(self, sink_id=int):
+        self.mv_SinkID = sink_id
+
+        if self.mv_SinkID == self.mv_ID:
+            self.mb_IsSink = True
 
 
     # Sends the battery low warning to all nodes that have been found
@@ -102,7 +116,15 @@ def Node():
     # Gets the dictionary with the localization
     def get_localization(self):
         
-        return self.md_Location
+        return self.mv_Location
+
+    
+    def get_range(self):
+        return self.mv_Range
+
+
+    def get_range_area(self):
+        return self.mv_RangeArea
 
 
     def get_battery_level(self):
@@ -120,25 +142,26 @@ def Node():
 
 
     # Calculates the distance to the given point in space, mainly in x and z axis
-    def distance_from(self, localisation=dict):
+    def distance_from(self, point=shapely.Point()):
         
         # Calculating the distance from a point
-        return math.dist([md_Location.get("x"), md_Location.get("z")], [localisation.get("x"), localisation.get("z")])
+        return shapely.distance(self.mv_Location, point)
 
 
     # Searches for the neighbours ( A simulation of neighbour seeking protocol used in internet network)
     # Simulated with the use of the main wsn map, that contains the 
-    def find_neighbours(self, simulated_wsn_map=list):
+    def find_neighbours(self, nodes_list=list):
         
-        for node in simulated_wsn_map:
-            if self.distance_from(node.get_localisation()) < 1000:
-                self.add_neighbour(node)
+        for node in nodes_list:
+            
+            if self.distance_from(node.get_localisation()) < self.mv_Range:
+                self.add_neighbour(id(node))
 
 
     # Adds the neighbour to the list of neighbours after validation
-    def add_neighbour(self, node=Node()):
+    def add_neighbour(self, neighbour_id=int):
         
-        self.ml_AdjacentNodes.append(node)
+        self.ml_AdjacentNodes.append(neighbour_id)
 
 
     # Simulates data collection

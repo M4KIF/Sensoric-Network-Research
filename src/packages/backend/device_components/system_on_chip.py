@@ -28,6 +28,9 @@ from scipy import constants as sc_const
 # Contains the whole energy management module
 from .energy_management import EMU
 
+# For sleep time calculations
+import time
+
 #####################
 # Object definition #
 #####################
@@ -40,33 +43,66 @@ class SOC():
 
     mo_EnergyManagement = None
 
+    mv_LastTimeActive = None
+
     #######################
     # Methods definitions #
     #######################
 
 
-    def __init__(self, battery_capacity=3000):
+    # Takes the battery capacity in mAH as a parameter
+    def __init__(self, battery_capacity_mah=100):
 
-        # Initialising the energy management unit with given battery capacity, defaults to 3000 mAH
-        self.mo_EnergyManagement = EMU(battery_capacity)
+        # Initialising the energy management unit with given battery capacity, defaults to 100 mAH
+        self.mo_EnergyManagement = EMU(battery_capacity_mah)
+
+        # Setting the latest activity to mimmick switching the device on
+        self.mv_LastTimeActive = time.time()
 
 
     # Simulating data transmission, the time is dependent on the distance between nodes
     def transmit_data(self, distance=float):
 
-        # Sending the amout of time spend to the energy management unit
+        # Takes the current time
+        current_time = time.time()
+
+        # Substracts the amount of energy that the device used while staying inactive
+        self.mo_EnergyManagement.sleep(current_time - self.mv_LastTimeActive)
+
+        # Updates the last active variable
+        self.mv_LastTimeActive = current_time
+
+        # Sending the amout of time spend to the energy management unit, assuming that the data packets are very small
         self.mo_EnergyManagement.calculate_transmission_action_consumption(distance / sc_const.speed_of_light)
 
 
     # Simulating data reciving, as above, time dependent on the distance
     def receive_data(self, distance=float):
 
-        # Sending the amout of time spend to the energy management unit
+        # Takes the current time
+        current_time = time.time()
+
+        # Substracts the amount of energy that the device used while staying inactive
+        self.mo_EnergyManagement.sleep(current_time - self.mv_LastTimeActive)
+
+        # Updates the last active variable
+        self.mv_LastTimeActive = current_time
+
+        # Sending the amout of time spend to the energy management unit, assuming that the data packets are very small
         self.mo_EnergyManagement.calculate_receive_action_consumption(distance / sc_const.speed_of_light)
 
 
     # Simulates the action of collecting the data from the sensors
     def collect_sensor_data(self):
+
+        # Takes the current time
+        current_time = time.time()
+
+        # Substracts the amount of energy that the device used while staying inactive
+        self.mo_EnergyManagement.sleep(current_time - self.mv_LastTimeActive)
+
+        # Updates the last active variable
+        self.mv_LastTimeActive = current_time
         
         # The collection of data uses a constant amount of energy, that is equal to 1ns of calculations
         self.mo_EnergyManagement.calculate_sensor_action_consumption()
@@ -75,8 +111,22 @@ class SOC():
     # Simulates the computing in the WSN, computing the transmission action, receiving or collecting the data.
     def compute_data(self):
 
+        # Takes the current time
+        current_time = time.time()
+
+        # Substracts the amount of energy that the device used while staying inactive
+        self.mo_EnergyManagement.sleep(current_time - self.mv_LastTimeActive)
+
+        # Updates the last active variable
+        self.mv_LastTimeActive = current_time
+
         # The collection of data uses a constant amount of energy, that is equal to 1ns of calculations
         self.mo_EnergyManagement.calculate_computing_action_consumption()
+
+
+    def sleep(self, time=float):
+
+        self.mo_EnergyManagement.sleep(time)
 
 
     # Checks the device battery level
