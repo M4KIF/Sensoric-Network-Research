@@ -35,6 +35,19 @@ class EMU():
 
     mo_Battery = None
 
+    # Energy that transmitting the data take
+    mv_TransmiterAction = 650 / 5
+
+    # Energy that data receiving take
+    mv_ReceiverAction = 500 / 5
+
+    # Energy that the sensors take while collecting data
+    mv_SensorsAction = 350 / 5
+
+    # Energy that either sensing data/receiving/transmitting/
+    # neighbour_locating calculations take
+    mv_ComputingAction = 250 / 5
+
     #######################
     # Methods definitions #
     #######################

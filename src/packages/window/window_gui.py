@@ -10,7 +10,7 @@
 ############
 
 # Elements for running the simulation
-from ..backend import network_simulator
+from ..backend import network_simulator as simulator
 #from backend import misc
 #from backend import network_simulator
 
@@ -24,4 +24,7 @@ import numpy as np
 import sys
 import os
 from copy import copy
+
+m_Hey = simulator.NetworkSimulator()
+print("Its here")
 
