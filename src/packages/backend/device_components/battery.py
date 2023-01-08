@@ -8,12 +8,14 @@
 # easy power usage simulation                 #
 ###############################################
 
+
 # mo - member object
 # ml - member list
 # md - member dictionary
 # mt - member tuple
 # mv - member variable
 # mb - member boolean
+
 
 #####################
 # Object definition #
@@ -22,9 +24,11 @@
 
 class Battery():
 
+
     #############
     # Variables #
     #############
+
 
     # A value of charge that a fully chareged cell contains in mAH,
     # not using Wh for simplicity
@@ -32,6 +36,7 @@ class Battery():
 
     # Updated constantly
     mv_CurrentCapacity = None
+
 
     ###########
     # Methods #
@@ -54,11 +59,13 @@ class Battery():
 
     # Battery capacity getter in mah
     def get_battery_designed_capacity(self):
+
         return self.mv_DesignedCapacity
 
 
     # Battery capacity getter in ma
     def get_battery_current_capacity(self):
+
         return self.mv_CurrentCapacity
 
 

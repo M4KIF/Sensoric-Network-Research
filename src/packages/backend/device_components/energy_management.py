@@ -5,6 +5,7 @@
 # functioning of an wsn node                      #
 ###################################################
 
+
 # mo - member object
 # ml - member list
 # md - member dictionary
@@ -12,12 +13,18 @@
 # mv - member variable
 # mb - member boolean
 
+
 ###########
 # Imports #
 ###########
 
+
 # Contains the battery object
 from .battery import Battery
+
+# Contains the scientific constatns
+from scipy import constants as sc_const
+
 
 #####################
 # Object definition #
@@ -37,17 +44,17 @@ class EMU():
     #########################################
 
     # Energy that transmitting the data take
-    mv_TransmiterActionConsumption = 650 / 5
+    mv_TransmiterActionConsumption = 20
 
     # Energy that data receiving take
-    mv_ReceiverActionConsumption = 500 / 5
+    mv_ReceiverActionConsumption = 20
 
     # Energy that the sensors take while collecting data
-    mv_SensorsActionConsumption = 350 / 5
+    mv_SensorsActionConsumption = 10
 
     # Energy that either sensing data/receiving/transmitting/
     # neighbour_locating calculations take
-    mv_ComputingActionConsumption = 250 / 5
+    mv_ComputingActionConsumption = 10
 
     # Sleep energy Consumption
     mv_SleepConsumption = 0.0005
@@ -70,32 +77,44 @@ class EMU():
         self.mo_Battery = Battery(capacity_mah)
 
 
+    # Calculates the signal propagation time
+    def calculate_signal_propagation_delay(self, distance=float):
+
+        return distance / sc_const.speed_of_light
+
+
     # Calculates the energy consumed while transmitting data
-    def calculate_transmission_action_consumption(self, time=float):
+    def calculate_transmission_action_consumption(self, distance=float, data_size=int, transmission_rate=int):
         
+        # Adding the propagation delay to the time
+        time+=self.calculate_signal_propagation_delay(distance)
+
         # Substracting from the battery
-        self.mo_Battery.subtract_energy(self.mv_TransmiterActionConsumption * time)
+        self.mo_Battery.subtract_energy(self.mv_TransmiterActionConsumption * data_size/transmission_rate)
 
 
     # Calculates the energy consumed while receiving data
-    def calculate_receive_action_consumption(self, time=float):
+    def calculate_receive_action_consumption(self, distance=float, data_size=int, transmission_rate=int):
+
+        # Adding the propagation delay to the time
+        time+=self.calculate_signal_propagation_delay(distance)
         
         # Substracting from the battery
-        self.mo_Battery.subtract_energy(self.mv_ReceiverActionConsumption * time)
+        self.mo_Battery.subtract_energy(self.mv_ReceiverActionConsumption * data_size/transmission_rate)
 
 
     # Calculates the energy consumed while the node's sensor was collecting the data
     def calculate_sensor_action_consumption(self):
         
         # Substracting from the battery
-        self.mo_Battery.subtract_energy(self.mv_SensorsActionConsumption * 0.05)
+        self.mo_Battery.subtract_energy(self.mv_SensorsActionConsumption)
 
 
     # Calculates the energy consumed while doing calculations 
     def calculate_computing_action_consumption(self):
         
         # Substracting from the battery
-        self.mo_Battery.subtract_energy(self.mv_ComputingActionConsumption * 0.2)
+        self.mo_Battery.subtract_energy(self.mv_ComputingActionConsumption)
 
 
     # Simulates the device staying inactive

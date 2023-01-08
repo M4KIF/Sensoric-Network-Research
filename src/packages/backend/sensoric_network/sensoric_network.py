@@ -153,8 +153,10 @@ class SensoricNetwork():
     def set_sink_node(self, node_number=int):
         sink = id(self.ml_Nodes[node_number])
 
+        self.ml_SinkNodes.append(sink)
+
         for node in self.ml_Nodes:
-            node.set_sink_node_id(sink)
+            node.set_sink_node(self.ml_Nodes[node_number])
 
 
     # Sets the network up with the given amount of nodes, 
@@ -191,17 +193,33 @@ class SensoricNetwork():
             node.collect_data()
             node.send_data()
 
-            if id(node) == id(self.ml_Nodes[sink]):
-                continue
-            else:
-                self.ml_Nodes[sink].receive_data()
+            for sink_node in self.ml_SinkNodes:
+                if id(node.get_sink_node()) == id(sink_node):
+                    sink_node.receive_data()
+                else:
+                    continue
 
             self.calculate_coverage()
 
 
 
     def run_simulation(self):
-        print()
+
+        # Running a loop until the coverage drops
+        while self.mv_CurrentCoverage >= self.mv_MinimumCoverage:
+
+            print(self.mv_CurrentCoverage)
+            
+            # Checking what kind of approach has to be used 
+            if self.mv_CurrentSollution == self.ml_SolutionType[0]:
+
+                # Deciding what kind of centralised algorithm will be used
+                if self.mv_CurrentAlgorithm == self.ml_CentralisedAlgorithms[0]:
+                    self.naive_algorithm()
+            elif self.mv_CurrentSollution == self.ml_SolutionType[1]:
+
+                # Deciding what kind of decentralised algorithm will be used
+                print()
 
 
     

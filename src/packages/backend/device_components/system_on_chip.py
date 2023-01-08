@@ -22,9 +22,6 @@
 # Includes #
 ############
 
-# Contains the scientific constatns
-from scipy import constants as sc_const
-
 # Contains the whole energy management module
 from .energy_management import EMU
 
@@ -73,7 +70,7 @@ class SOC():
         self.mv_LastTimeActive = current_time
 
         # Sending the amout of time spend to the energy management unit, assuming that the data packets are very small
-        self.mo_EnergyManagement.calculate_transmission_action_consumption(distance / sc_const.speed_of_light)
+        self.mo_EnergyManagement.calculate_transmission_action_consumption(distance, 64, 800000)
 
 
     # Simulating data reciving, as above, time dependent on the distance
@@ -89,7 +86,7 @@ class SOC():
         self.mv_LastTimeActive = current_time
 
         # Sending the amout of time spend to the energy management unit, assuming that the data packets are very small
-        self.mo_EnergyManagement.calculate_receive_action_consumption(distance / sc_const.speed_of_light)
+        self.mo_EnergyManagement.calculate_receive_action_consumption(distance, 64, 800000)
 
 
     # Simulates the action of collecting the data from the sensors

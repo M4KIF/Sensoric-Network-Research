@@ -41,6 +41,9 @@ class Node():
     # Conatains the list of nodes that are within range, using python's id()
     ml_AdjacentNodes = []
 
+    # Sink node
+    mv_SinkNode = None
+
     # A dictionary that contains the location of the sensor in 2 dimensions
     mv_Location = shapely.Point(0,0)
 
@@ -97,8 +100,8 @@ class Node():
 
 
     # Sets the id of a sink node
-    def set_sink_node_id(self, sink_id=int):
-        self.mv_SinkID = sink_id
+    def set_sink_node(self, sink=None):
+        self.mv_SinkID = id(sink)
 
         if self.mv_SinkID == self.mv_ID:
             self.mb_IsSink = True
