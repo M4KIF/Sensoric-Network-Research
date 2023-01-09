@@ -37,7 +37,7 @@ class SensoricNetwork():
     # A constructor. Takes the amount of nodes,
     # battery capacity, lower left and upper right point of the area covered by sensors as params
     def __init__(self, node_amount=int(10), battery_capacity=int(500),
-    x_l=int(0), y_l=int(0), x_u=int(1000), y_u=int(1000), minimum_coverage=int(80)):
+    x_l=int(0), y_l=int(0), x_u=int(1000), y_u=int(1000), minimum_coverage=int(70)):
 
         ###########
         # Approaches choice variables #
@@ -73,6 +73,9 @@ class SensoricNetwork():
 
         # The amount of the nodes
         self.mv_NodeAmount = node_amount
+
+        # Active nodes amount
+        self.mv_ActiveNodes = 0
 
         # The minimum percentile value of the area that the WSN has to cover
         self.mv_MinimumCoverage = minimum_coverage
@@ -199,8 +202,8 @@ class SensoricNetwork():
         
         # Making a copy of the area
         area = shapely.Polygon(self.mv_Area)
-        print(f"Copied polygon area ", area.area)
-        print(f"Original polygon area ", self.mv_Area.area)
+        #print(f"Copied polygon area ", area.area)
+        #print(f"Original polygon area ", self.mv_Area.area)
 
         # If the nodes have been initialised
         if self.mb_NodesInitialised:
@@ -208,13 +211,15 @@ class SensoricNetwork():
             # Substracting their areas from the area of interest
             for node in self.ml_Nodes:
                 
-                if node.get_battery_level() > 1 and node.is_active():
+                if node.is_active():
                     area = area.difference(node.get_range_area())
 
-            print(f"Copied polygon area after substracting", area.area)
+            #print(f"Copied polygon area after substracting", area.area)
+
 
             # After the differences have been calculated, calculating the coverage percentage
-            return area.area * 100 / self.mv_Area.area
+            print(100 - area.area * 100 / self.mv_Area.area)
+            return 100 - area.area * 100 / self.mv_Area.area
 
 
 
@@ -296,7 +301,7 @@ class SensoricNetwork():
 
     def dfs(self, visited, node, sink):  #function for dfs 
         if id(node) == id(sink):
-            print("Jest sink")
+            visited.add(node)
             raise Exception("sink found")
 
         if node not in visited:
@@ -313,16 +318,17 @@ class SensoricNetwork():
         # Nodes setup, searching for a sink #
         #####################################
 
+        # Activating all of the nodes
+        for node in self.ml_Nodes:
+            node.activate()
+            self.mv_ActiveNodes+=1
+
         # Contains a circle in which a sink has to be found
-        possible_sink_location = self.mv_Area.point_on_surface().buffer(150)
+        possible_sink_location = self.mv_Area.point_on_surface().buffer(200)
 
         # Current lowest distance from the middle point
         lowest_distance = None
         sink = None
-
-        # Activating all of the nodes
-        for node in self.ml_Nodes:
-            node.deactivate()
 
         # Searching for the best sink location in the area near the middle
         for node in self.ml_Nodes:
@@ -375,9 +381,8 @@ class SensoricNetwork():
             visited.clear()
             try:
                 self.dfs(visited, node, sink)
-                print("Nie ma sinka")
             except:
-                print("znaleziono sink")
+                print("Path to the sink found!")
                 for v in visited:
                     node.add_to_path(v)
                 print(len(node.ml_Path))
@@ -387,8 +392,41 @@ class SensoricNetwork():
         # crappy apporach
         # and can calculate the coverage by using shapely.difference(Area, sensor range) and substracting all of the sensors
         # area from the overall network area, then calculating the percentile coverage.
-                
-        print(self.calculate_coverage())
+
+        while self.calculate_coverage() > self.mv_MinimumCoverage:
+
+            transfer_done = False
+            print(self.mv_ActiveNodes)
+
+            for node in self.ml_Nodes:
+                if node.is_active() and len(node.ml_Path) > 0:
+                    node.transmit_data(10000*int(shapely.distance(node.get_localization(), node.ml_Path[0].get_localization())))
+                    if len(node.ml_Path) > 1:
+                        for element in node.ml_Path:
+                            if element.is_active():
+                                if id(element) != id(sink):
+                                    element.aggregate_data(10000*int(shapely.distance(node.get_localization(), element.get_localization())))
+                                else:
+                                    element.receive_data(10000*int(shapely.distance(node.get_localization(), element.get_localization())))
+                                transfer_done = True
+                            else:
+                                node.deactivate()
+                else:
+                    continue
+
+            if not transfer_done:
+                print("Out!")
+                break
+
+            for node in self.ml_Nodes:
+                if node.get_battery_level() < 5 and node.is_active():
+                    self.mv_ActiveNodes-=1
+                    node.deactivate()
+
+            if self.mv_ActiveNodes == 0:
+                print("Out?")
+                break
+
 
 
 

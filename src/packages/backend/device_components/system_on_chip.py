@@ -58,7 +58,7 @@ class SOC():
 
 
     # Simulating data transmission, the time is dependent on the distance between nodes
-    def transmit_data(self, distance=float):
+    def transmit_data(self, distance=int):
 
         # Takes the current time
         current_time = time.time()
@@ -74,7 +74,7 @@ class SOC():
 
 
     # Simulating data reciving, as above, time dependent on the distance
-    def receive_data(self, distance=float):
+    def receive_data(self, distance=int):
 
         # Takes the current time
         current_time = time.time()
@@ -87,6 +87,22 @@ class SOC():
 
         # Sending the amout of time spend to the energy management unit, assuming that the data packets are very small
         self.mo_EnergyManagement.calculate_receive_action_consumption(distance, 256000, 800000)
+
+
+    def aggregate_data(self, distance=int):
+
+        # Takes the current time
+        current_time = time.time()
+
+        # Substracts the amount of energy that the device used while staying inactive
+        self.mo_EnergyManagement.sleep(current_time - self.mv_LastTimeActive)
+
+        # Updates the last active variable
+        self.mv_LastTimeActive = current_time
+
+        # Sending the amout of time spend to the energy management unit, assuming that the data packets are very small
+        self.mo_EnergyManagement.calculate_data_aggregation(distance, 256000, 800000)
+
 
 
     # Simulates the action of collecting the data from the sensors

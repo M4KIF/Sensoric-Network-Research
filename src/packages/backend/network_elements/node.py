@@ -117,7 +117,7 @@ class Node():
         ###########
 
         # Initialising the SOC functionality and setting the battery capacity
-        self.mo_SOC = dc.SOC()
+        self.mo_SOC = dc.SOC(battery_capacity)
 
         #####################
         # Node Localisation #
@@ -127,7 +127,7 @@ class Node():
         self.mv_Location = shapely.Point(x, y)
 
         # Contains the range of a node in meters, defaults to 250m
-        self.mv_Range = 150
+        self.mv_Range = 200
 
         # Contains the area that the node can access
         self.mv_Coverage = self.mv_Location.buffer(self.mv_Range)
@@ -148,7 +148,7 @@ class Node():
         self.ml_SinkNodes = []
 
         # Basic path to sink node
-        self.ml_Path = set()
+        self.ml_Path = list()
 
         ###########################
         # Node settings variables #
@@ -219,7 +219,7 @@ class Node():
 
     # Adds a node which has to be visited in order to reach the Sink
     def add_to_path(self, node):
-        self.ml_Path.add(node)
+        self.ml_Path.append(node)
 
 
     # Adding a node to the neighbours list
@@ -256,10 +256,8 @@ class Node():
         level = self.mo_SOC.get_battery_level()
 
         # Checking if it is above the threshold
-        if level <= self.mv_BatteryLowThreshold and not self.mb_BatteryLow:
+        if level <= self.mv_BatteryLowThreshold and not self.mb_LowBattery:
             self.activate_battery_low_flag()
-
-            raise Exception("Battery level low")
 
         return level
 
@@ -299,18 +297,23 @@ class Node():
 
 
     # Receives the data packet
-    def receive_data(self):
+    def receive_data(self, distance=int):
 
         # Sends the signal to SOC that It has to receive the data wirelesly
         # of course, energy management is obvious
-        self.mo_SOC.receive_data()
+        self.mo_SOC.receive_data(distance)
 
 
     # Transmits the data packet
-    def transmit_data(self):
+    def transmit_data(self, distance=int):
 
         # Informs the SOC that It has to follow through the transmission procedures
-        self.mo_SOC.transmit_data()
+        self.mo_SOC.transmit_data(distance)
+
+    
+    def aggregate_data(self, distance=int):
+
+        self.mo_SOC.aggregate_data(distance)
 
     
 

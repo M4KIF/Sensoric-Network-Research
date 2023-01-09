@@ -47,34 +47,34 @@ class EMU():
     # as with the distance of the transmission the power requirements change in 
     # steps, co a 100m transmission can draw even more than 2 times less power than fe. 200m transmission
 
-    #
+    # multiplied by 1000 to make things quicker
     md_TrasmissionPowerLevels = {
-        "1":4,
-        "3":5,
-        "7":6,
-        "11":7,
-        "15":7.6,
-        "19":8.4,
-        "23":9,
-        "27":10,
-        "31":10.4
+        "1":4000,
+        "3":6000,
+        "7":8000,
+        "11":10000,
+        "15":12000,
+        "19":15000,
+        "23":18000,
+        "27":24000,
+        "31":30000
     }
 
     # Energy that transmitting the data take
-    mv_TransmiterActionConsumption = 20
+    mv_TransmiterActionConsumption = 200
 
     # Energy that data receiving take
-    mv_ReceiverActionConsumption = 20
+    mv_ReceiverActionConsumption = 200
 
     # Energy that the sensors take while collecting data
-    mv_SensorsActionConsumption = 10
+    mv_SensorsActionConsumption = 100
 
     # Energy that either sensing data/receiving/transmitting/
     # neighbour_locating calculations take
-    mv_ComputingActionConsumption = 10
+    mv_ComputingActionConsumption = 100
 
     # Sleep energy Consumption
-    mv_SleepConsumption = 0.0005
+    mv_SleepConsumption = 0.05
 
     #########################
     # Objects and variables #
@@ -104,11 +104,16 @@ class EMU():
         return distance / sc_const.speed_of_light
 
 
+    def calculate_data_aggregation(self,distance=int,data_size=int,transmission_rate=int):
+        # Substracting from the battery
+        self.mo_Battery.subtract_energy(2 * self.ack_transmission_consumption("1")*368/transmission_rate)
+
+        self.mo_Battery.subtract_energy(self.md_TrasmissionPowerLevels["1"] * data_size/transmission_rate)
+
     # Calculates the energy consumed while transmitting data
-    def calculate_transmission_action_consumption(self, distance=float, data_size=int, transmission_rate=int):
+    def calculate_transmission_action_consumption(self, distance=int, data_size=int, transmission_rate=int):
         
         # Adding the propagation delay to the time
-        time+=self.calculate_signal_propagation_delay(distance)
 
         # Substracting from the battery
         if distance < 50:
@@ -129,7 +134,6 @@ class EMU():
     def calculate_receive_action_consumption(self, distance=float, data_size=int, transmission_rate=int):
 
         # Adding the propagation delay to the time
-        time+=self.calculate_signal_propagation_delay(distance)
         
         #
         self.mo_Battery.subtract_energy(4 * self.ack_transmission_consumption("15")*368/transmission_rate)
