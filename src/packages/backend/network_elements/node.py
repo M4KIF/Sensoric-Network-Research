@@ -127,7 +127,7 @@ class Node():
         self.mv_Location = shapely.Point(x, y)
 
         # Contains the range of a node in meters, defaults to 250m
-        self.mv_Range = 100
+        self.mv_Range = 150
 
         # Contains the area that the node can access
         self.mv_Coverage = self.mv_Location.buffer(self.mv_Range)
@@ -148,7 +148,7 @@ class Node():
         self.ml_SinkNodes = []
 
         # Basic path to sink node
-        self.ml_Path = []
+        self.ml_Path = set()
 
         ###########################
         # Node settings variables #
@@ -183,8 +183,24 @@ class Node():
         # Set only if the battery level reaches 20%, so as the network can try and deal with this situation
         self.mb_LowBattery = False
 
+        #
+        self.mb_Active = False
+
         # The default "low battery" warning threshold
         self.mv_BatteryLowThreshold = 20
+
+
+    #
+    def activate(self):
+        self.mb_Active = True
+
+
+    def deactivate(self):
+        self.mb_Active = False
+
+
+    def is_active(self):
+        return self.mb_Active
 
 
     # Localizes the node in the environment, a simulation of an gps module
@@ -202,8 +218,8 @@ class Node():
 
 
     # Adds a node which has to be visited in order to reach the Sink
-    def add_to_path(self, node=None):
-        self.ml_Path.append(node)
+    def add_to_path(self, node):
+        self.ml_Path.add(node)
 
 
     # Adding a node to the neighbours list

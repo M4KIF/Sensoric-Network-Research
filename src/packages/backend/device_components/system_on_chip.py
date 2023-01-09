@@ -130,4 +130,4 @@ class SOC():
     def get_battery_level(self):
         
         # Asks the energy management module for battery status
-        return self.mo_EnergyManagement.calculate_percent_left()
+        return self.mo_EnergyManagement.get_charge_percentage_left()

@@ -192,9 +192,32 @@ class SensoricNetwork():
             random.randint(int(area_bounds[0]), int(area_bounds[2])),
             random.randint(int(area_bounds[1]), int(area_bounds[3]))))
 
+        self.mb_NodesInitialised = True
+
 
     def calculate_coverage(self):
-        print()
+        
+        # Making a copy of the area
+        area = shapely.Polygon(self.mv_Area)
+        print(f"Copied polygon area ", area.area)
+        print(f"Original polygon area ", self.mv_Area.area)
+
+        # If the nodes have been initialised
+        if self.mb_NodesInitialised:
+            
+            # Substracting their areas from the area of interest
+            for node in self.ml_Nodes:
+                
+                if node.get_battery_level() > 1 and node.is_active():
+                    area = area.difference(node.get_range_area())
+
+            print(f"Copied polygon area after substracting", area.area)
+
+            # After the differences have been calculated, calculating the coverage percentage
+            return area.area * 100 / self.mv_Area.area
+
+
+
 
 
     def search_sink_recursive(self, node=None, path_list=None):
@@ -267,6 +290,22 @@ class SensoricNetwork():
                     self.search_sink_recursive(best_node, path_list)
 
 
+    def path_to_sink(self, node, sink, ):
+        stack, path = [node], []
+
+
+    def dfs(self, visited, node, sink):  #function for dfs 
+        if id(node) == id(sink):
+            print("Jest sink")
+            raise Exception("sink found")
+
+        if node not in visited:
+            visited.add(node)
+            for neighbour in node.ml_AdjacentNodes:
+                self.dfs(visited, neighbour, sink)  
+
+
+
 
     def naive_algorithm(self):
 
@@ -280,6 +319,10 @@ class SensoricNetwork():
         # Current lowest distance from the middle point
         lowest_distance = None
         sink = None
+
+        # Activating all of the nodes
+        for node in self.ml_Nodes:
+            node.deactivate()
 
         # Searching for the best sink location in the area near the middle
         for node in self.ml_Nodes:
@@ -324,46 +367,28 @@ class SensoricNetwork():
         # Searching for a individual path to a sink for each node
         #for node in self.ml_Nodes:
             
-            #self.search_sink_recursive(node, node.ml_Path)
+        #self.search_sink_recursive(node, node.ml_Path)
+
+        visited = set()
 
         for node in self.ml_Nodes:
-            
-            if id(node) != id(sink):
-                print("Wlazlo")
-                sink_found = False
+            visited.clear()
+            try:
+                self.dfs(visited, node, sink)
+                print("Nie ma sinka")
+            except:
+                print("znaleziono sink")
+                for v in visited:
+                    node.add_to_path(v)
+                print(len(node.ml_Path))
 
-                adj = node.ml_AdjacentNodes
-                while not (sink_found):
-
-                    distance = None
-                    best_node = None
-
-                    for n in adj:
-                        if id(n) == id(sink):
-                            node.ml_Path.append(n)
-                            sink_found = True
-                            break
-
-                        temp = shapely.distance(n.get_localization(), sink.get_localization())
-
-                        if distance == None:
-                            distance = temp
-                        elif temp < distance:
-                            best_node = n
-                            distance = temp
-
-                    if sink_found: break
-
-                    if not sink_found and best_node != None:
-                        if len(best_node.ml_AdjacentNodes) == 0:
-                            break
-
-                        node.ml_Path.append(best_node)
-
-                        adj = best_node.ml_AdjacentNodes
-                        continue
-                    else: break
+        # Calculating coverage for the test
+        # Can assume that the coverage is the overall percent of the network as is, while discarding the area approach
+        # crappy apporach
+        # and can calculate the coverage by using shapely.difference(Area, sensor range) and substracting all of the sensors
+        # area from the overall network area, then calculating the percentile coverage.
                 
+        print(self.calculate_coverage())
 
 
 

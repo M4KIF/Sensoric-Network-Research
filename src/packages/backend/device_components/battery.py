@@ -25,19 +25,6 @@
 class Battery():
 
 
-    #############
-    # Variables #
-    #############
-
-
-    # A value of charge that a fully chareged cell contains in mAH,
-    # not using Wh for simplicity
-    mv_DesignedCapacity = None
-
-    # Updated constantly
-    mv_CurrentCapacity = None
-
-
     ###########
     # Methods #
     ###########
@@ -46,8 +33,17 @@ class Battery():
     # Takes in the battery capacity as a default argument
     def __init__(self, capacity_mah=100):
         
-        # Calling the capacity setter
-        self.set_battery_capacity(capacity_mah)
+        #############
+        # Variables #
+        #############
+
+
+        # A value of charge that a fully chareged cell contains in mAH,
+        # not using Wh for simplicity
+        self.mv_DesignedCapacity = capacity_mah * 3600
+
+        # Updated constantly
+        self.mv_CurrentCapacity = self.mv_DesignedCapacity
 
 
     # A simple battery capacity setter
@@ -55,6 +51,9 @@ class Battery():
 
         # Setting the cell capacity in mA
         self.mv_DesignedCapacity = capacity_mah * 3600
+
+        # Setting current battery capacity as the designed capacity
+        self.mv_CurrentCapacity = self.mv_DesignedCapacity
 
 
     # Battery capacity getter in mah
@@ -77,7 +76,7 @@ class Battery():
 
 
     # Returns the percent of charge left
-    def get_charge_left(self):
+    def get_charge_percentage_left(self):
         
         # Calculates the percent value with a simple proportion
         return self.mv_CurrentCapacity * 100 / self.mv_DesignedCapacity

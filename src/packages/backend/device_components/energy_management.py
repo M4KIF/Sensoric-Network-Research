@@ -160,7 +160,7 @@ class EMU():
 
 
     # Calculates the percentage of the battery left based on the data from the battery
-    def get_charge_left(self):
+    def get_charge_percentage_left(self):
         
         # Getting the information from the Battery
-        return self.mo_Battery.get_charge_left()
+        return self.mo_Battery.get_charge_percentage_left()
