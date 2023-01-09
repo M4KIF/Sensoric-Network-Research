@@ -28,95 +28,6 @@ import shapely
 
 class SensoricNetwork():
 
-    ###########
-    # Approaches choice variables #
-    ###########
-
-    # List containing the possible solutions to the problem of maximisation of the lifetime expectancy
-    ml_SolutionType = ["Centralised", "Decentralised"]
-
-        # Proposed algorithms for the centralised approach, dispatched by this object
-    # assuming that it is a gateway of the whole WSN. This object is then responsible for 
-    # simulating the data collection functionality and all of the management
-    ml_CentralisedAlgorithms = ["naive"]
-
-    # Proposed algorithms for the decentralised approach, which will be dispatched mainly
-    # by the nodes themselves. This object will only send signals about the data collection,
-    # the rest should be carried out by the nodes with the help of the neighbour list
-    # The data transmission will recursive with limited amount of hops to transfer the data to the sink
-    ml_DecentralisedAlgorithms = []
-
-
-    # List containing the names of the implemented approaches to improving the lifetime of a WSN
-    ml_Algorithms = ["naive", "Particle-Swarm-Optimisation"]
-
-    #####################
-    # Network variables #
-    #####################
-
-    # Contains the area polygon
-    mv_Area = None
-
-    # The amount of the nodes
-    mv_NodeAmount = None
-
-    # The minimum percentile value of the area that the WSN has to cover
-    mv_MinimumCoverage = None
-
-    # The current value that the network covers
-    mv_CurrentCoverage = None
-
-    # Cell capacity of the nodes
-    mv_BatteryCapacity = None
-
-    ######################
-    # Nodes, Groups etc. #
-    ######################
-
-    # List of all of the sinks that are currently used in any of the solutions
-    ml_SinkNodes = []
-
-    # List of all of the standard nodes excluding the sink nodes
-    ml_Nodes = []
-
-    # Possibly used for algorithms using grouping as an optimisation
-    ml_GroupsOfNodes = []
-
-    #################
-    # Miscellaneous #
-    #################
-
-    # Stores the "uptime" of the network
-    mv_Lifetime = None
-
-    # Currently used algorithm
-    mv_CurrentAlgorithm = None
-
-    ############
-    # Booleans #
-    ############
-
-    # Activated after every call on "Collect data" on the nodes
-    mb_DataCollectionRequestSent = False
-
-    # Activated after the initialisation of the nodes, by that I mean:
-    # location has been assigned and parameters like cell capacity are correct
-    mb_NodesInitialised = False
-
-    # Activated if a valid lists of neighbours has been created for every node
-    mb_NeighboursAssigned = False
-
-    # Activated if a node raises an exception concerning the low battery level of a particular node
-    mb_LayoutShuffleNeeded = False
-
-    #
-    mb_SizeChanged = False
-
-    # 
-    mb_BatteryCapacity = False
-
-    #
-    mb_CoverageUnderThreshold = False
 
     #######################
     # Methods definitions #
@@ -128,23 +39,98 @@ class SensoricNetwork():
     def __init__(self, node_amount=int(10), battery_capacity=int(500),
     x_l=int(0), y_l=int(0), x_u=int(1000), y_u=int(1000), minimum_coverage=int(80)):
 
+        ###########
+        # Approaches choice variables #
+        ###########
+
+        # List containing the possible solutions to the problem of maximisation of the lifetime expectancy
+        self.ml_SolutionType = ["Centralised", "Decentralised"]
+
+        # Proposed algorithms for the centralised approach, dispatched by this object
+        # assuming that it is a gateway of the whole WSN. This object is then responsible for 
+        # simulating the data collection functionality and all of the management
+        self.ml_CentralisedAlgorithms = ["naive"]
+
+        # Proposed algorithms for the decentralised approach, which will be dispatched mainly
+        # by the nodes themselves. This object will only send signals about the data collection,
+        # the rest should be carried out by the nodes with the help of the neighbour list
+        # The data transmission will recursive with limited amount of hops to transfer the data to the sink
+        self.ml_DecentralisedAlgorithms = []
+
+
+        # List containing the names of the implemented approaches to improving the lifetime of a WSN
+        self.ml_Algorithms = ["naive", "Particle-Swarm-Optimisation"]
+
+        #####################
+        # Network variables #
+        #####################
+
         # Setting a list of points temporarily, in order to create a polygon
         polygon_points_list = [shapely.Point(x_l, y_l), shapely.Point(x_u, y_l), shapely.Point(x_u, y_u), shapely.Point(x_l, y_u)]
 
-        # Creating a polygon out of the points from above
+        # Contains the area polygon
         self.mv_Area = shapely.Polygon([[p.x, p.y] for p in polygon_points_list])
 
-        # Setting the coverage value
-        self.set_minimum_coverage_value(minimum_coverage)
+        # The amount of the nodes
+        self.mv_NodeAmount = node_amount
 
-        # Setting the nodes amount
-        self.set_node_amount(node_amount)
+        # The minimum percentile value of the area that the WSN has to cover
+        self.mv_MinimumCoverage = minimum_coverage
 
-        # Setting default battery capacity
-        self.set_node_battery_capacity(battery_capacity)
+        # The current value that the network covers
+        self.mv_CurrentCoverage = None
 
-        # Setting the default algorithm to be the centralised naive
+        # Cell capacity of the nodes
+        self.mv_BatteryCapacity = battery_capacity
+
+        ######################
+        # Nodes, Groups etc. #
+        ######################
+
+        # List of all of the sinks that are currently used in any of the solutions
+        self.ml_SinkNodes = []
+
+        # List of all of the standard nodes excluding the sink nodes
+        self.ml_Nodes = []
+
+        # Possibly used for algorithms using grouping as an optimisation
+        self.ml_GroupsOfNodes = []
+
+        #################
+        # Miscellaneous #
+        #################
+
+        # Stores the "uptime" of the network
+        self.mv_Lifetime = None
+
+        # Currently used algorithm
         self.mv_CurrentAlgorithm = self.ml_Algorithms[0]
+
+        ############
+        # Booleans #
+        ############
+
+        # Activated after every call on "Collect data" on the nodes
+        self.mb_DataCollectionRequestSent = False
+
+        # Activated after the initialisation of the nodes, by that I mean:
+        # location has been assigned and parameters like cell capacity are correct
+        self.mb_NodesInitialised = False
+
+        # Activated if a valid lists of neighbours has been created for every node
+        self.mb_NeighboursAssigned = False
+
+        # Activated if a node raises an exception concerning the low battery level of a particular node
+        self.mb_LayoutShuffleNeeded = False
+
+        #
+        self.mb_SizeChanged = False
+
+        # 
+        self.mb_BatteryCapacity = False
+
+        #
+        self.mb_CoverageUnderThreshold = False
 
 
     # Sets the nodes amount
@@ -289,13 +275,15 @@ class SensoricNetwork():
         #####################################
 
         # Contains a circle in which a sink has to be found
-        possible_sink_location = self.mv_Area.point_on_surface().buffer(250)
+        possible_sink_location = self.mv_Area.point_on_surface().buffer(150)
 
         # Current lowest distance from the middle point
         lowest_distance = None
         sink = None
 
+        # Searching for the best sink location in the area near the middle
         for node in self.ml_Nodes:
+            # If the node is inside the possible sink span
             if shapely.contains_xy(possible_sink_location, node.get_localization().coords[:]):
 
                 # Calculating the distance between middle of the area and a node
@@ -317,6 +305,7 @@ class SensoricNetwork():
             node.add_sink_node(sink)
 
             if id(node) == id(sink):
+                print("Tak bylo")
                 node.mb_Sink = True
 
         # Adding the closest neighbours to the node within 100m
@@ -324,10 +313,9 @@ class SensoricNetwork():
             temp = node.get_range_area()
 
             for another_node in self.ml_Nodes:
-                if id(node) != id(another_node) and node != sink:
+                if id(node) != id(another_node) or node != sink:
                     
-                    if (shapely.contains_xy(temp, another_node.get_localization().coords[:])
-                    and shapely.distance(node.get_localization(), another_node.get_localization()) < 100):
+                    if (shapely.contains_xy(temp, another_node.get_localization().coords[:])):
                         # Adding a nodes that are relatively close 
                         node.add_to_neighbours_list(another_node)
 
@@ -341,19 +329,14 @@ class SensoricNetwork():
         for node in self.ml_Nodes:
             
             if id(node) != id(sink):
+                print("Wlazlo")
                 sink_found = False
 
                 adj = node.ml_AdjacentNodes
-
-                distance = None
-                best_node = None
-
-                print(adj)
-
                 while not (sink_found):
-                    
-                    if len(adj) == 0:
-                        break
+
+                    distance = None
+                    best_node = None
 
                     for n in adj:
                         if id(n) == id(sink):
@@ -368,22 +351,18 @@ class SensoricNetwork():
                         elif temp < distance:
                             best_node = n
                             distance = temp
-                    
-                    if sink_found == True:
-                        break
 
-                    if best_node != None:
+                    if sink_found: break
+
+                    if not sink_found and best_node != None:
+                        if len(best_node.ml_AdjacentNodes) == 0:
+                            break
+
                         node.ml_Path.append(best_node)
 
                         adj = best_node.ml_AdjacentNodes
-                    else:
-                        break
-
-            if sink_found:
-                print("We've got this")
-                sink_found = False
-            else:
-                node.ml_Path.clear()
+                        continue
+                    else: break
                 
 
 

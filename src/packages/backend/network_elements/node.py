@@ -127,7 +127,7 @@ class Node():
         self.mv_Location = shapely.Point(x, y)
 
         # Contains the range of a node in meters, defaults to 250m
-        self.mv_Range = 250
+        self.mv_Range = 100
 
         # Contains the area that the node can access
         self.mv_Coverage = self.mv_Location.buffer(self.mv_Range)
@@ -207,7 +207,7 @@ class Node():
 
 
     # Adding a node to the neighbours list
-    def add_to_neighbours_list(self, node=None):
+    def add_to_neighbours_list(self, node):
         self.ml_AdjacentNodes.append(node)
 
 
