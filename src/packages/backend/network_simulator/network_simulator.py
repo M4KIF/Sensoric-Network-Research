@@ -24,8 +24,8 @@ from PyQt5 import QtCore
 
 class NetworkSimulator():
 
-    m_Network = network.SensoricNetwork(x_l=0, y_l=0, x_u=1000, y_u=1000)
+    m_Network = network.SensoricNetwork(x_l=0, y_l=0, x_u=500, y_u=500)
 
     def __init__(self):
-        self.m_Network.initiate_network(200, 500)
+        self.m_Network.initiate_network(25, 500)
         self.m_Network.naive_algorithm()

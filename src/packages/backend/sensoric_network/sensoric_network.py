@@ -211,6 +211,77 @@ class SensoricNetwork():
         print()
 
 
+    def search_sink_recursive(self, node=None, path_list=None):
+
+        for node in self.ml_Nodes:
+
+            sink_found = False
+            error_occured = False
+
+            path = node.ml_Path
+            adj = node.ml_AdjacentNodes
+
+            while not sink_found and not error_occured:
+
+                if len(adj) == 0:
+                    error_occured = True
+                    break
+
+                distance = None
+                best_node = None
+
+                for n in adj:
+                    if id(n) == id(node.ml_SinkNodes[0]):
+                        path_list.append(n)
+                        sink_found = True
+                        break
+
+                    temp = shapely.distance(node.ml_SinkNodes[0].get_localization(), n.get_localization())
+
+                    if distance == None:
+                        distance = temp
+
+                    elif temp < distance:
+                        best_node = n
+                        distance = temp
+
+                node.ml_Path.append(best_node)
+
+                adj = best_node.ml_AdjacentNodes
+
+
+
+        # Proceeds if the needed variables aren't empty
+        if node != None or path_list != None:
+
+            if node.ml_AdjacentNodes != 0:
+                # 
+                distance = None
+                best_node = None
+
+                for n in node.ml_AdjacentNodes:
+                    if id(n) == id(node.ml_SinkNodes[0]):
+                        path_list.append(n)
+                        return
+
+                    print("Sinkju")
+                    print(len(node.ml_SinkNodes))
+                    temp = shapely.distance(node.ml_SinkNodes[0].get_localization(), n.get_localization())
+
+                    if distance == None:
+                        distance = temp
+
+                    elif temp < distance:
+                        best_node = n
+                        distance = temp
+
+                if best_node != None:
+                    path_list.append(best_node)
+
+                    self.search_sink_recursive(best_node, path_list)
+
+
+
     def naive_algorithm(self):
 
         #####################################
@@ -239,13 +310,82 @@ class SensoricNetwork():
                         lowest_distance = temp
                         sink = node
 
+        # Adding sink nodes
         for node in self.ml_Nodes:
 
             # Setting the sink node in the other nodes
             node.add_sink_node(sink)
 
-        # Searching a path to the sink node via shapely functions
+            if id(node) == id(sink):
+                node.mb_Sink = True
+
+        # Adding the closest neighbours to the node within 100m
+        for node in self.ml_Nodes:
+            temp = node.get_range_area()
+
+            for another_node in self.ml_Nodes:
+                if id(node) != id(another_node) and node != sink:
+                    
+                    if (shapely.contains_xy(temp, another_node.get_localization().coords[:])
+                    and shapely.distance(node.get_localization(), another_node.get_localization()) < 100):
+                        # Adding a nodes that are relatively close 
+                        node.add_to_neighbours_list(another_node)
+
+            print(node.get_neighbours_amount())
         
+        # Searching for a individual path to a sink for each node
+        #for node in self.ml_Nodes:
+            
+            #self.search_sink_recursive(node, node.ml_Path)
+
+        for node in self.ml_Nodes:
+            
+            if id(node) != id(sink):
+                sink_found = False
+
+                adj = node.ml_AdjacentNodes
+
+                distance = None
+                best_node = None
+
+                print(adj)
+
+                while not (sink_found):
+                    
+                    if len(adj) == 0:
+                        break
+
+                    for n in adj:
+                        if id(n) == id(sink):
+                            node.ml_Path.append(n)
+                            sink_found = True
+                            break
+
+                        temp = shapely.distance(n.get_localization(), sink.get_localization())
+
+                        if distance == None:
+                            distance = temp
+                        elif temp < distance:
+                            best_node = n
+                            distance = temp
+                    
+                    if sink_found == True:
+                        break
+
+                    if best_node != None:
+                        node.ml_Path.append(best_node)
+
+                        adj = best_node.ml_AdjacentNodes
+                    else:
+                        break
+
+            if sink_found:
+                print("We've got this")
+                sink_found = False
+            else:
+                node.ml_Path.clear()
+                
+
 
 
     def run_simulation(self):

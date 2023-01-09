@@ -27,6 +27,3 @@ from copy import copy
 
 m_Hey = simulator.NetworkSimulator()
 
-print(id(m_Hey))
-print("Its here")
-

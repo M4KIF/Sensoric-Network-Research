@@ -47,7 +47,7 @@ class Node():
     mv_Location = shapely.Point(0,0)
 
     # Contains the range of a node in meters, defaults to 150m
-    mv_Range = 250
+    mv_Range = 150
 
     # Contains the area that the node can access
     mv_Coverage = mv_Location.buffer(mv_Range)
@@ -66,6 +66,9 @@ class Node():
 
     # Contains the information about sink nodes
     ml_SinkNodes = []
+
+    # Basic path to sink node
+    ml_Path = []
 
     ###########################
     # Node settings variables #
@@ -109,30 +112,103 @@ class Node():
     # Initialises the node with needed data, ie. its battery capacity, location, and possibly id
     def __init__(self, battery_capacity=int(100), x=int(0), y=int(0), node_id=int):
 
-        # Sets the location of the node
+        ###########
+        # Objects #
+        ###########
+
+        # Initialising the SOC functionality and setting the battery capacity
+        self.mo_SOC = dc.SOC()
+
+        #####################
+        # Node Localisation #
+        #####################
+
+        # A point that contains the coordinates of this sensor node
         self.mv_Location = shapely.Point(x, y)
 
-        # Sets current node id
-        self.mv_ID = node_id
+        # Contains the range of a node in meters, defaults to 250m
+        self.mv_Range = 250
 
-        print(self.mv_Location.coords[:])
+        # Contains the area that the node can access
+        self.mv_Coverage = self.mv_Location.buffer(self.mv_Range)
+
+        ###########################
+        # Other nodes information #
+        ###########################
+
+        # Can contain tuples of information, node and needed hops
+
+        # Conatains the list of nodes that are within range
+        self.ml_AdjacentNodes = []
+
+        # Contains the information about aggregating nodes
+        self.ml_AggregatingNodes = []
+
+        # Contains the information about sink nodes
+        self.ml_SinkNodes = []
+
+        # Basic path to sink node
+        self.ml_Path = []
+
+        ###########################
+        # Node settings variables #
+        ###########################
+
+        # The threshold at which node indicates low battery level warning
+        self.mv_BatteryLowThreshold = None
+
+        #################
+        # Miscellaneous #
+        #################
+
+        # This node's id
+        self.mv_ID = None
+
+        # The sink node id
+        self.mv_SinkID = None
+
+        ############
+        # Booleans #
+        ############
+
+        # Activated only if this node is a sink
+        self.mb_Sink = False
+
+    #    Activated only if this node is an aggregating node
+        self.mb_Aggregating = False
+
+        # Activated only if this node is the sensing node
+        self.mb_Sensing = False
+
+        # Set only if the battery level reaches 20%, so as the network can try and deal with this situation
+        self.mb_LowBattery = False
 
         # The default "low battery" warning threshold
         self.mv_BatteryLowThreshold = 20
-
-        print(self.mv_Coverage.area)
 
 
     # Localizes the node in the environment, a simulation of an gps module
     def set_localization(self, x=int, y=int):
         
         # Setting the device localisation
-        self.md_Location = shapely.Point(x, y)
+        self.mv_Location = shapely.Point(x, y)
+
+        self.mv_Coverage = self.mv_Location.buffer(self.mv_Range)
 
 
     # Sets the id of a sink node
     def add_sink_node(self, sink=None):
         self.ml_SinkNodes.append(sink)
+
+
+    # Adds a node which has to be visited in order to reach the Sink
+    def add_to_path(self, node=None):
+        self.ml_Path.append(node)
+
+
+    # Adding a node to the neighbours list
+    def add_to_neighbours_list(self, node=None):
+        self.ml_AdjacentNodes.append(node)
 
 
     # Sends the battery low warning to all nodes that have been found
@@ -170,6 +246,10 @@ class Node():
             raise Exception("Battery level low")
 
         return level
+
+    
+    def get_neighbours_amount(self):
+        return len(self.ml_AdjacentNodes)
 
 
     # Calculates the distance to the given point in space, mainly in x and z axis
