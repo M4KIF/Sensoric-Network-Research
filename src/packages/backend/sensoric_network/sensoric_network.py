@@ -66,10 +66,10 @@ class SensoricNetwork():
         #####################
 
         # Setting a list of points temporarily, in order to create a polygon
-        polygon_points_list = [shapely.Point(x_l, y_l), shapely.Point(x_u, y_l), shapely.Point(x_u, y_u), shapely.Point(x_l, y_u)]
+        self.ml_AreaPoints = [shapely.Point(x_l, y_l), shapely.Point(x_u, y_l), shapely.Point(x_u, y_u), shapely.Point(x_l, y_u)]
 
         # Contains the area polygon
-        self.mv_Area = shapely.Polygon([[p.x, p.y] for p in polygon_points_list])
+        self.mv_Area = shapely.Polygon([[p.x, p.y] for p in self.ml_AreaPoints])
 
         # The amount of the nodes
         self.mv_NodeAmount = node_amount
@@ -146,14 +146,19 @@ class SensoricNetwork():
         self.mv_BatteryCapacity = capacity
 
 
+    def set_height(self, h=int):
+        print()
+        #points = [self.ml_AreaPoints[0], self.ml_AreaPoints[1], shapely.]
+
+
     # Changes the area of the network
     def set_area(self, x_l=int, y_l=int, x_u=int, y_u=int):
 
         # Setting a list of points temporarily, in order to create a polygon
-        polygon_points_list = [shapely.Point(x_l, y_l), shapely.Point(x_u, y_l), shapely.Point(x_u, y_u), shapely.Point(x_l, y_u)]
+        self.ml_AreaPoints = [shapely.Point(x_l, y_l), shapely.Point(x_u, y_l), shapely.Point(x_u, y_u), shapely.Point(x_l, y_u)]
 
         # Creating a polygon out of the points from above
-        self.mv_Area = shapely.Polygon([[p.x, p.y] for p in polygon_points_list])
+        self.mv_Area = shapely.Polygon([[p.x, p.y] for p in self.ml_AreaPoints])
 
 
     # Changes the minimum coverage value
@@ -431,6 +436,8 @@ class SensoricNetwork():
 
 
     def run_simulation(self):
+
+        print("Not yet")
 
         # Running a loop until the coverage drops
         while self.mv_CurrentCoverage >= self.mv_MinimumCoverage:

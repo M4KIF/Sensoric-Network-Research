@@ -25,9 +25,9 @@ from PyQt5 import QtCore
 
 class NetworkSimulator():
 
-    m_Network = network.SensoricNetwork(x_l=0, y_l=0, x_u=1000, y_u=1000)
-
     def __init__(self):
+        self.m_Network = network.SensoricNetwork(x_l=0, y_l=0, x_u=1000, y_u=1000)
+
         self.m_Network.initiate_network(100, 650)
 
         time_before = time.time()

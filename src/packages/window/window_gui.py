@@ -144,12 +144,57 @@ class Window(QMainWindow):
 
         self.areaLayout = QGridLayout()
 
+        self.algorithms_label = QLabel()
+        self.algorithms_label.setText("Algorithms Available")
+        self.settingsLayout.addWidget(self.algorithms_label, 0, 0, 1, 1)
+
+        self.algorithms_combo = QComboBox()
+        self.algorithms_combo.addItems(self.backend.m_Network.ml_Algorithms)
+        self.settingsLayout.addWidget(self.algorithms_combo, 1, 0, 2, 1, Qt.AlignmentFlag.AlignTop)
+
+        self.height_label = QLabel()
+        self.height_label.setText("Height:")
+        self.settingsLayout.addWidget(self.height_label, 2, 0, 3, 1, Qt.AlignmentFlag.AlignTop)
+
+        self.height_edit = QLineEdit()
+        self.height_edit.setText(str(self.backend.m_Network.ml_AreaPoints[2].coords[0][1]))
+        self.settingsLayout.addWidget(self.height_edit, 3, 0, 4, 1, Qt.AlignmentFlag.AlignTop)
+
+        self.width_label = QLabel()
+        self.width_label.setText("Height:")
+        self.settingsLayout.addWidget(self.width_label, 4, 0, 5, 1, Qt.AlignmentFlag.AlignTop)
+
+        self.width_edit = QLineEdit()
+        self.width_edit.setText(str(self.backend.m_Network.ml_AreaPoints[2].coords[0][0]))
+        self.settingsLayout.addWidget(self.width_edit, 5, 0, 6, 1, Qt.AlignmentFlag.AlignTop)
+        
+        self.nodes_amount_label = QLabel()
+        self.nodes_amount_label.setText("The amount of nodes used")
+        self.settingsLayout.addWidget(self.nodes_amount_label, 6, 0, 7, 1, Qt.AlignmentFlag.AlignTop)
+
+        self.nodes_amount_edit = QLineEdit()
+        self.settingsLayout.addWidget(self.nodes_amount_edit, 7, 0, 8, 1, Qt.AlignmentFlag.AlignTop)
+
+        self.battery_capacity_label = QLabel()
+        self.battery_capacity_label.setText("The battery capacity")
+        self.settingsLayout.addWidget(self.battery_capacity_label, 8, 0, 9, 1, Qt.AlignmentFlag.AlignTop)
+
+        self.battery_capacity = QLineEdit()
+        self.settingsLayout.addWidget(self.battery_capacity, 9, 0, 10, 1, Qt.AlignmentFlag.AlignTop)
+
+        self.run_simulation_button = QPushButton()
+        self.run_simulation_button.clicked.connect(self.backend.m_Network.run_simulation)
+        self.run_simulation_button.setText("Simulate!")
+        self.settingsLayout.addWidget(self.run_simulation_button, 10, 0, 11, 1, Qt.AlignmentFlag.AlignCenter)
+
+        battery_capacity_change_action = QAction()
+
         self.area_widget = PlotCanvas(self, width=10,height=7,dpi=120)
 
         self.areaLayout.addWidget(self.area_widget)
 
-        self.baseLayout.addLayout(self.areaLayout, Qt.AlignmentFlag.AlignLeft)
-        self.baseLayout.addLayout(self.settingsLayout, Qt.AlignmentFlag.AlignRight)
+        self.baseLayout.addLayout(self.areaLayout)
+        self.baseLayout.addLayout(self.settingsLayout)
 
         self.main_widget = QWidget()
 
