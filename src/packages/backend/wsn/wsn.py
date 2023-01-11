@@ -16,7 +16,7 @@
 
 
 # For enabling the network functions
-from .. import network_elements as components
+from .. import wsn_nodes as components
 import random
 import shapely
 

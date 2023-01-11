@@ -22,7 +22,7 @@
 
 import math
 import shapely
-from .. import device_components as dc
+from .. import node_components as dc
 
 
 #####################

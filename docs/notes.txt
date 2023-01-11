@@ -24,3 +24,8 @@ Network simulator object will just be an interface over sensoric network that wo
 
 With the use of object ID, I can create a hopping algorithm that will try to wind the path to a sink in the least amount of steps. As I can create such funcitonality with a simple boolean in the right node.
 
+Some changes were made to the structure of the project. A file with data usage values went out, and the variables were hard coded into the EMU code.
+
+In case of clustering, the nodes can be divided into three categories: sensor node, data aggregating node, sink node. 
+The sensor node's job is to collect data and send it further. That means, with the help of aggregating nodes transport it to the sink node.
+

@@ -12,7 +12,7 @@
 ############
 
 # From there on, a simulation will be created in conjunction with data logging
-from .. import sensoric_network as network
+from .. import wsn as network
 from .. import misc as data
 import time
 
@@ -23,7 +23,7 @@ from PyQt5 import QtCore
 # Object definition #
 #
 
-class NetworkSimulator():
+class wsnSimulator():
 
     def __init__(self):
         self.m_Network = network.SensoricNetwork(x_l=0, y_l=0, x_u=1000, y_u=1000)

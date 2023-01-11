@@ -23,7 +23,7 @@
 ############
 
 # Contains the whole energy management module
-from .energy_management import EMU
+from .emu import EMU
 
 # For sleep time calculations
 import time

@@ -10,7 +10,7 @@
 ############
 
 # Elements for running the simulation
-from ..backend import network_simulator as simulator
+from ..backend import wsn_simulator as simulator
 #from backend import misc
 #from backend import network_simulator
 
@@ -135,7 +135,7 @@ class Window(QMainWindow):
         # App name
         self.m_AppName = "WSN-Research"
 
-        self.backend = simulator.NetworkSimulator()
+        self.backend = simulator.wsnSimulator()
 
         #
         self.baseLayout = QHBoxLayout()
