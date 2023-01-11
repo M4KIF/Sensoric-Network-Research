@@ -1,1 +1,1 @@
-from .data_handler import *
+from .data_collector import *

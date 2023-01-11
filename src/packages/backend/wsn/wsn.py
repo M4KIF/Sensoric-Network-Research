@@ -36,40 +36,34 @@ class SensoricNetwork():
 
     # A constructor. Takes the amount of nodes,
     # battery capacity, lower left and upper right point of the area covered by sensors as params
-    def __init__(self, node_amount=int(10), battery_capacity=int(500),
-    x_l=int(0), y_l=int(0), x_u=int(1000), y_u=int(1000), minimum_coverage=int(70)):
+    def __init__(self, node_amount=int(10), battery_capacity=int(50), height=int(1000), width=int(1000),
+    minimum_coverage=int(70)):
 
         ###########
         # Approaches choice variables #
         ###########
 
-        # List containing the possible solutions to the problem of maximisation of the lifetime expectancy
-        self.ml_SolutionType = ["Centralised", "Decentralised"]
-
-        # Proposed algorithms for the centralised approach, dispatched by this object
-        # assuming that it is a gateway of the whole WSN. This object is then responsible for 
-        # simulating the data collection functionality and all of the management
-        self.ml_CentralisedAlgorithms = ["naive"]
-
-        # Proposed algorithms for the decentralised approach, which will be dispatched mainly
-        # by the nodes themselves. This object will only send signals about the data collection,
-        # the rest should be carried out by the nodes with the help of the neighbour list
-        # The data transmission will recursive with limited amount of hops to transfer the data to the sink
-        self.ml_DecentralisedAlgorithms = []
-
-
         # List containing the names of the implemented approaches to improving the lifetime of a WSN
         self.ml_Algorithms = ["naive", "Particle-Swarm-Optimisation"]
+
+        # Runtime speed x times faster than real
+        self.ml_RuntimeSpeed = ["100", "500", "1000", "10000"]
 
         #####################
         # Network variables #
         #####################
 
         # Setting a list of points temporarily, in order to create a polygon
-        self.ml_AreaPoints = [shapely.Point(x_l, y_l), shapely.Point(x_u, y_l), shapely.Point(x_u, y_u), shapely.Point(x_l, y_u)]
+        self.ml_AreaBounds = [shapely.Point(0, 0), shapely.Point(width, 0), shapely.Point(width, height), shapely.Point(0, height)]
 
         # Contains the area polygon
-        self.mv_Area = shapely.Polygon([[p.x, p.y] for p in self.ml_AreaPoints])
+        self.mv_AreaPolygon = shapely.Polygon([[p.x, p.y] for p in self.ml_AreaBounds])
+
+        # Contains the width of the area
+        self.mv_Width = width
+
+        # Contains the height of the area
+        self.mv_Height = height
 
         # The amount of the nodes
         self.mv_NodeAmount = node_amount
@@ -109,6 +103,10 @@ class SensoricNetwork():
         # Currently used algorithm
         self.mv_CurrentAlgorithm = self.ml_Algorithms[0]
 
+        self.ml_xAxisPlotData = []
+        self.ml_yAxisPlotData = []
+        self.ml_ColorPlotData = []
+
         ############
         # Booleans #
         ############
@@ -116,9 +114,15 @@ class SensoricNetwork():
         # Activated after every call on "Collect data" on the nodes
         self.mb_DataCollectionRequestSent = False
 
+        # Activated if all of the nodes properties are set
+        self.mb_EssentialPropertiesSet = False
+
+        # Activated if the nodes are initialised
+        self.mb_NodesInitialised = False
+
         # Activated after the initialisation of the nodes, by that I mean:
         # location has been assigned and parameters like cell capacity are correct
-        self.mb_NodesInitialised = False
+        self.mb_NetworkReady = False
 
         # Activated if a valid lists of neighbours has been created for every node
         self.mb_NeighboursAssigned = False
@@ -136,34 +140,122 @@ class SensoricNetwork():
         self.mb_CoverageUnderThreshold = False
 
 
+    ##############################
+    # Member methods definitions #
+    ##############################
+
+
+    def set_height(self, height=int):
+
+        # Setting the height
+        self.mv_Height = height
+
+        # Deactivating the ready flag
+        self.mb_NetworkReady = False
+        self.mb_NodesInitialised = False
+
+        # Recreating the Area bounds and the polygon
+        self.ml_AreaBounds = [shapely.Point(0, 0), shapely.Point(self.mv_Width, 0), shapely.Point(self.mv_Width, height), shapely.Point(0, height)]
+        self.mv_AreaPolygon = shapely.Polygon([[p.x, p.y] for p in self.ml_AreaBounds])
+
+        # After changing the dimensions I have to reinitiate the network partly
+        for node in self.ml_Nodes:
+            node.clear()
+
+        self.ml_SinkNodes.clear()
+        self.ml_Nodes.clear()
+        self.ml_GroupsOfNodes.clear()
+        
+        self.initiate_network()
+
+    def set_width(self, width=int):
+
+        # Setting the width
+        self.mv_Width = width
+
+        # Deactivating the ready flag
+        self.mb_NetworkReady = False
+        self.mb_NodesInitialised = False
+
+        # Recreating the Area bounds and the polygon
+        self.ml_AreaBounds = [shapely.Point(0, 0), shapely.Point(width, 0), shapely.Point(width, self.mv_Height), shapely.Point(0, self.mv_Height)]
+        self.mv_AreaPolygon = shapely.Polygon([[p.x, p.y] for p in self.ml_AreaBounds])
+
+        # After changing the dimensions I have to reinitiate the network partly
+        for node in self.ml_Nodes:
+            node.clear()
+
+        self.ml_SinkNodes.clear()
+        self.ml_Nodes.clear()
+        self.ml_GroupsOfNodes.clear()
+        
+        self.initiate_network()
+
+
+#    Changes the area of the network
+    def set_area_dimensions(self, height=int, width=int):
+
+        # Setting the height
+        self.mv_Width = width
+
+        # Setting the height
+        self.mv_Height = height    
+
+        # Deactivating the ready flag
+        self.mb_NetworkReady = False
+        self.mb_NodesInitialised = False
+
+        # Setting a list of points temporarily, in order to create a polygon
+        self.ml_AreaBounds = [shapely.Point(0, 0), shapely.Point(width, 0), shapely.Point(width, height), shapely.Point(0, height)]
+
+        # Creating a polygon out of the points from above
+        self.mv_AreaPolygon = shapely.Polygon([[p.x, p.y] for p in self.ml_AreaBounds])
+
+        # After changing the dimensions I have to reinitiate the network partly
+        for node in self.ml_Nodes:
+            node.clear()
+
+        self.ml_SinkNodes.clear()
+        self.ml_Nodes.clear()
+        self.ml_GroupsOfNodes.clear()
+        
+        self.initiate_network()
+
+
     # Sets the nodes amount
     def set_node_amount(self, amount):
         self.mv_NodeAmount = amount
+
+        # Deactivating the ready flag
+        self.mb_NetworkReady = False
+        self.mb_NodesInitialised = False
+
+        # After changing the dimensions I have to reinitiate the network partly
+        for node in self.ml_Nodes:
+            node.clear()
+
+        self.ml_SinkNodes.clear()
+        self.ml_Nodes.clear()
+        self.ml_GroupsOfNodes.clear()
+        
+        self.initiate_network()
 
 
     # Sets the battery capacity in mAH
     def set_node_battery_capacity(self, capacity):
         self.mv_BatteryCapacity = capacity
 
-
-    def set_height(self, h=int):
-        print()
-        #points = [self.ml_AreaPoints[0], self.ml_AreaPoints[1], shapely.]
-
-
-    # Changes the area of the network
-    def set_area(self, x_l=int, y_l=int, x_u=int, y_u=int):
-
-        # Setting a list of points temporarily, in order to create a polygon
-        self.ml_AreaPoints = [shapely.Point(x_l, y_l), shapely.Point(x_u, y_l), shapely.Point(x_u, y_u), shapely.Point(x_l, y_u)]
-
-        # Creating a polygon out of the points from above
-        self.mv_Area = shapely.Polygon([[p.x, p.y] for p in self.ml_AreaPoints])
+        for node in self.ml_Nodes:
+            node.set_battery_capacity(self.mv_BatteryCapacity)
 
 
     # Changes the minimum coverage value
     def set_minimum_coverage_value(self, percent_of_area=int):
         self.mv_MinimumCoverage=percent_of_area
+
+
+    def set_algorithm(self, index=int):
+        self.mv_CurrentAlgorithm = self.ml_Algorithms[index]
 
 
     # Setting a sink node
@@ -176,16 +268,14 @@ class SensoricNetwork():
             node.set_sink_node(self.ml_Nodes[node_number])
 
 
+    def can_initiate(self):
+        print() 
+
+
     # Sets the network up with the given amount of nodes, 
     # that are spread over a certain and defined area and each one
     # with a battery cell of which the size is specified
-    def initiate_network(self, node_amount=int(10), node_cell_capacity=int):
-
-        # Setting the size of the network - amount of sensors overall
-        self.set_node_amount(node_amount)
-
-        # Setting the battery capacity of each node
-        self.set_node_battery_capacity(node_cell_capacity)
+    def initiate_network(self):
 
         # Creating the sensors
         for i in range(self.mv_NodeAmount):
@@ -193,25 +283,28 @@ class SensoricNetwork():
             # Appending the list with sensors which have a battery of choosen size       
 
             # Extracting the bounds of the area polygon
-            area_bounds = self.mv_Area.bounds
+            area_bounds = self.mv_AreaPolygon.bounds
 
             # Creating a node with given battery capacity and random points taken from the area that shall be covered
             self.ml_Nodes.append(components.Node(self.mv_BatteryCapacity,
             random.randint(int(area_bounds[0]), int(area_bounds[2])),
             random.randint(int(area_bounds[1]), int(area_bounds[3]))))
 
+        self.mb_NetworkReady = True
         self.mb_NodesInitialised = True
+
+        self.calculate_plot_data()
 
 
     def calculate_coverage(self):
         
         # Making a copy of the area
-        area = shapely.Polygon(self.mv_Area)
+        area = shapely.Polygon(self.mv_AreaPolygon)
         #print(f"Copied polygon area ", area.area)
-        #print(f"Original polygon area ", self.mv_Area.area)
+        #print(f"Original polygon area ", self.mv_AreaPolygon.area)
 
         # If the nodes have been initialised
-        if self.mb_NodesInitialised:
+        if self.mb_NetworkReady:
             
             # Substracting their areas from the area of interest
             for node in self.ml_Nodes:
@@ -223,8 +316,8 @@ class SensoricNetwork():
 
 
             # After the differences have been calculated, calculating the coverage percentage
-            print(100 - area.area * 100 / self.mv_Area.area)
-            return 100 - area.area * 100 / self.mv_Area.area
+            print(100 - area.area * 100 / self.mv_AreaPolygon.area)
+            return 100 - area.area * 100 / self.mv_AreaPolygon.area
 
 
 
@@ -329,7 +422,7 @@ class SensoricNetwork():
             self.mv_ActiveNodes+=1
 
         # Contains a circle in which a sink has to be found
-        possible_sink_location = self.mv_Area.point_on_surface().buffer(200)
+        possible_sink_location = self.mv_AreaPolygon.point_on_surface().buffer(200)
 
         # Current lowest distance from the middle point
         lowest_distance = None
@@ -341,7 +434,7 @@ class SensoricNetwork():
             if shapely.contains_xy(possible_sink_location, node.get_localization().coords[:]):
 
                 # Calculating the distance between middle of the area and a node
-                temp = shapely.distance(self.mv_Area.point_on_surface(), node.get_localization())
+                temp = shapely.distance(self.mv_AreaPolygon.point_on_surface(), node.get_localization())
 
                 if lowest_distance == None:
                     lowest_distance = temp
@@ -406,13 +499,16 @@ class SensoricNetwork():
             for node in self.ml_Nodes:
                 if node.is_active() and len(node.ml_Path) > 0:
                     node.transmit_data(10000*int(shapely.distance(node.get_localization(), node.ml_Path[0].get_localization())))
+                    self.calculate_plot_data()
                     if len(node.ml_Path) > 1:
                         for element in node.ml_Path:
                             if element.is_active():
                                 if id(element) != id(sink):
                                     element.aggregate_data(10000*int(shapely.distance(node.get_localization(), element.get_localization())))
+                                    self.calculate_plot_data()
                                 else:
                                     element.receive_data(10000*int(shapely.distance(node.get_localization(), element.get_localization())))
+                                    self.calculate_plot_data()
                                 transfer_done = True
                             else:
                                 node.deactivate()
@@ -432,30 +528,31 @@ class SensoricNetwork():
                 print("Out?")
                 break
 
-
-
-
-    def run_simulation(self):
-
-        print("Not yet")
-
-        # Running a loop until the coverage drops
-        while self.mv_CurrentCoverage >= self.mv_MinimumCoverage:
-
-            print(self.mv_CurrentCoverage)
-            
-            # Checking what kind of approach has to be used 
-            if self.mv_CurrentSollution == self.ml_SolutionType[0]:
-
-                # Deciding what kind of centralised algorithm will be used
-                if self.mv_CurrentAlgorithm == self.ml_CentralisedAlgorithms[0]:
-                    self.naive_algorithm()
-            elif self.mv_CurrentSollution == self.ml_SolutionType[1]:
-
-                # Deciding what kind of decentralised algorithm will be used
-                print()
-
-
     
+    def calculate_plot_data(self):
+
+        self.ml_xAxisPlotData = []
+        self.ml_yAxisPlotData = []
+        self.ml_ColorPlotData = []
+
+        for node in self.ml_Nodes:
+            self.ml_xAxisPlotData.append(node.get_localization().coords[:][0][0])
+            self.ml_yAxisPlotData.append(node.get_localization().coords[:][0][1])
+            self.ml_ColorPlotData.append(node.mv_Color)
+    
+
+    def get_plot_data(self):
+
+        return [self.ml_xAxisPlotData, self.ml_yAxisPlotData, self.ml_ColorPlotData]
+
+
+    def cleanup_after_simulation(self):
+        for node in self.ml_Nodes:
+            node.ml_AdjacentNodes.clear()
+            node.ml_AggregatingNodes.clear()
+            node.ml_SinkNodes.clear()
+            node.ml_Path.clear()
+
+        self.ml_SinkNodes.clear()
 
 

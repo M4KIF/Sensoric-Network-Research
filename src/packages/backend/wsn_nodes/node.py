@@ -19,95 +19,22 @@
 # Includes #
 ############
 
-
-import math
+# Geographical Points, areas and other usefull calculations
 import shapely
-from .. import node_components as dc
+
+# The module containing energy consumption and calculation related components
+from ..node_components import SOC
+
+# Enables sleep time to pause "in_action" for a moment. 
+# Helps with displaying the data on the plot with the active node highlighted
+import time
 
 
 #####################
 # Object definition #
 #####################
 
-
 class Node():
-
-    ###########
-    # Objects #
-    ###########
-
-    # Initialising the SOC functionality and setting the battery capacity
-    mo_SOC = dc.SOC()
-
-    #####################
-    # Node Localisation #
-    #####################
-
-    # A point that contains the coordinates of this sensor node
-    mv_Location = shapely.Point(0,0)
-
-    # Contains the range of a node in meters, defaults to 150m
-    mv_Range = 150
-
-    # Contains the area that the node can access
-    mv_Coverage = mv_Location.buffer(mv_Range)
-
-    ###########################
-    # Other nodes information #
-    ###########################
-
-    # Can contain tuples of information, node and needed hops
-
-    # Conatains the list of nodes that are within range
-    ml_AdjacentNodes = []
-
-    # Contains the information about aggregating nodes
-    ml_AggregatingNodes = []
-
-    # Contains the information about sink nodes
-    ml_SinkNodes = []
-
-    # Basic path to sink node
-    ml_Path = []
-
-    ###########################
-    # Node settings variables #
-    ###########################
-
-    # The threshold at which node indicates low battery level warning
-    mv_BatteryLowThreshold = None
-
-    #################
-    # Miscellaneous #
-    #################
-
-    # This node's id
-    mv_ID = None
-
-    # The sink node id
-    mv_SinkID = None
-
-    ############
-    # Booleans #
-    ############
-
-    # Activated only if this node is a sink
-    mb_Sink = False
-
-    # Activated only if this node is an aggregating node
-    mb_Aggregating = False
-
-    # Activated only if this node is the sensing node
-    mb_Sensing = False
-
-    # Set only if the battery level reaches 20%, so as the network can try and deal with this situation
-    mb_LowBattery = False
-
-
-    #######################
-    # Methods definitions #
-    #######################
-
 
     # Initialises the node with needed data, ie. its battery capacity, location, and possibly id
     def __init__(self, battery_capacity=int(100), x=int(0), y=int(0), node_id=int):
@@ -117,7 +44,7 @@ class Node():
         ###########
 
         # Initialising the SOC functionality and setting the battery capacity
-        self.mo_SOC = dc.SOC(battery_capacity)
+        self.mo_SOC = SOC(battery_capacity)
 
         #####################
         # Node Localisation #
@@ -167,6 +94,9 @@ class Node():
         # The sink node id
         self.mv_SinkID = None
 
+        # For the plotting of the color
+        self.mv_Color = 80
+
         ############
         # Booleans #
         ############
@@ -189,6 +119,18 @@ class Node():
         # The default "low battery" warning threshold
         self.mv_BatteryLowThreshold = 20
 
+    def __del__(self):
+        
+        self.clear()
+
+
+    def clear(self):
+        # Cleaning the nodes stored in the other nodes list
+        self.ml_AdjacentNodes.clear()
+        self.ml_AggregatingNodes.clear()
+        self.ml_Path.clear()
+        self.ml_SinkNodes.clear()
+
 
     #
     def activate(self):
@@ -201,6 +143,12 @@ class Node():
 
     def is_active(self):
         return self.mb_Active
+
+
+    # Sets the battery size
+    def set_battery_capacity(self, capacity=int):
+        # A little shortcut
+        self.mo_SOC.mo_EnergyManagement.mo_Battery.set_battery_capacity(capacity)
 
 
     # Localizes the node in the environment, a simulation of an gps module
@@ -291,29 +239,49 @@ class Node():
 
     # Simulates data collection
     def collect_data(self):
+        
+        self.mv_Color = 50
 
         # Sends the signal to SOC to take care of data collection and energy management
         self.mo_SOC.collect_sensor_data()
+
+        time.sleep(0.05)
+        self.mv_Color = 20
 
 
     # Receives the data packet
     def receive_data(self, distance=int):
 
+        self.mv_Color = 50
+
         # Sends the signal to SOC that It has to receive the data wirelesly
         # of course, energy management is obvious
         self.mo_SOC.receive_data(distance)
+
+        time.sleep(0.05)
+        self.mv_Color = 20
 
 
     # Transmits the data packet
     def transmit_data(self, distance=int):
 
+        self.mv_Color = 50
+
         # Informs the SOC that It has to follow through the transmission procedures
         self.mo_SOC.transmit_data(distance)
+
+        time.sleep(0.05)
+        self.mv_Color = 20
 
     
     def aggregate_data(self, distance=int):
 
+        self.mv_Color = 50
+
         self.mo_SOC.aggregate_data(distance)
+
+        time.sleep(0.05)
+        self.mv_Color = 20
 
     
 

@@ -67,39 +67,8 @@ class PlotCanvas(FigureCanvasQTAgg):
         self.m_Plots = self.m_Figure.subplots()
 
 
-    def addTwoHorizontalPlots(self):
-        self.m_GridSpace = self.m_Figure.add_gridspec(2, hspace=0.2)
-        self.m_Plots = self.m_GridSpace.subplots()
-        self.m_Plots[0].set_xticklabels([])
-        self.m_Plots[0].set_xticks([])
-        self.m_MultiplePlots = True
-        self.m_StackedVerticaly = True
-
-
-    def addTwoVerticalPlots(self):
-        self.m_GridSpace = self.m_Figure.add_gridspec(1, 2, wspace=0.1)
-        self.m_Plots = self.m_GridSpace.subplots(sharex=True)
-        self.m_Plots[1].set_yticklabels([])
-        self.m_Plots[1].set_yticks([])
-        self.m_Plots[0].set_xticks([])
-        self.m_MultiplePlots = True
-        self.m_StackedHorizontaly = True
-
-
-    def createFrequencyResponsePlot(self, data):
-        self.m_Plots.plot(data[1], data[0])
-
-
-    def createSpectrogramPlot(self, data):
-        if not (self.m_MultiplePlots == True and self.m_StackedVerticaly == True):
-            self.m_Plots.pcolormesh(self.backend.getFirstChannelTimeSegments(), self.backend.getFirstChannelFrequencySamples(), self.backend.getFirstChannelSpectrogramData(), cmap="plasma")
-        else:
-            self.m_Plots[0].pcolormesh(data[0][1], data[0][0], data[0][2], cmap="plasma")
-            self.m_Plots[1].pcolormesh(data[1][1], data[1][0], data[1][2], cmap="plasma")
-
-
-    def createSpectralDistributionPlot(self, data):
-        print('')
+    def createAreaPlot(self, x, y, color):
+        self.m_Plots.scatter(x, y, s=50, c=color, cmap="spring")
 
 
     def clearCanvas(self):
@@ -109,11 +78,6 @@ class PlotCanvas(FigureCanvasQTAgg):
 
         # Clearing the figure of any plots
         self.m_Figure.clear()
-
-        # Changing the multiplots flag
-        self.m_MultiplePlots = False
-        self.m_StackedHorizontaly = False
-        self.m_StackedVerticaly = False
 
 
     def clearAxes(self):
@@ -129,77 +93,265 @@ class Window(QMainWindow):
 
     def __init__(self, *args, **kwargs):
 
+        ###########################################
+        # Objects initialisation, threading, etc. #
+        ###########################################
+
         # Base class initialisation
         super(Window, self).__init__(*args, **kwargs)
 
         # App name
         self.m_AppName = "WSN-Research"
 
+        # The backend, that the window will visualise
         self.backend = simulator.wsnSimulator()
 
-        #
-        self.baseLayout = QHBoxLayout()
+        ######################################
+        # Main Window layouts initialisation #
+        ######################################
 
-        self.settingsLayout = QGridLayout()
+        # The outer window layout to which I will add the area plot and the settings panel
+        self.mainLayout = QHBoxLayout()
 
-        self.areaLayout = QGridLayout()
+        # The plot layout, to which I will add an matplotlib widget
+        self.plotLayout = QGridLayout()
+        self.area_widget = PlotCanvas(self, width=8,height=7,dpi=120)
+        self.area_widget.addSinglePlot()
+        self.draw_plot()
+        self.plotLayout.addWidget(self.area_widget)
 
-        self.algorithms_label = QLabel()
-        self.algorithms_label.setText("Algorithms Available")
-        self.settingsLayout.addWidget(self.algorithms_label, 0, 0, 1, 1)
+        # The settings panel layout
+        self.settingsLayout = QVBoxLayout()
+        self.settingsLayout.setSpacing(15)
+        self.settingsLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.algorithms_combo = QComboBox()
-        self.algorithms_combo.addItems(self.backend.m_Network.ml_Algorithms)
-        self.settingsLayout.addWidget(self.algorithms_combo, 1, 0, 2, 1, Qt.AlignmentFlag.AlignTop)
+        ############################################
+        # Algorithm settings panel layout creation #
+        ############################################
 
-        self.height_label = QLabel()
-        self.height_label.setText("Height:")
-        self.settingsLayout.addWidget(self.height_label, 2, 0, 3, 1, Qt.AlignmentFlag.AlignTop)
+        # Creating a algorithm selection section
+        self.algorithm_layout = QFormLayout()
 
-        self.height_edit = QLineEdit()
-        self.height_edit.setText(str(self.backend.m_Network.ml_AreaPoints[2].coords[0][1]))
-        self.settingsLayout.addWidget(self.height_edit, 3, 0, 4, 1, Qt.AlignmentFlag.AlignTop)
+        # Defining the algorithm selection combobox and linking it to the function, which takes the index
+        self.select_algorithm_combo = QComboBox()
+        self.select_algorithm_combo.addItems(self.backend.m_Network.ml_Algorithms)
+        self.select_algorithm_combo.setStatusTip("Sends the backend a message about which algorithm to use")
+        self.select_algorithm_combo.activated.connect(self.set_algorithm)
 
-        self.width_label = QLabel()
-        self.width_label.setText("Height:")
-        self.settingsLayout.addWidget(self.width_label, 4, 0, 5, 1, Qt.AlignmentFlag.AlignTop)
+        # Adding a row with and action
+        self.algorithm_layout.addRow("Algorithm:", self.select_algorithm_combo)
 
-        self.width_edit = QLineEdit()
-        self.width_edit.setText(str(self.backend.m_Network.ml_AreaPoints[2].coords[0][0]))
-        self.settingsLayout.addWidget(self.width_edit, 5, 0, 6, 1, Qt.AlignmentFlag.AlignTop)
-        
-        self.nodes_amount_label = QLabel()
-        self.nodes_amount_label.setText("The amount of nodes used")
-        self.settingsLayout.addWidget(self.nodes_amount_label, 6, 0, 7, 1, Qt.AlignmentFlag.AlignTop)
+        #######################################
+        # Area settings panel layout creation #
+        #######################################
 
-        self.nodes_amount_edit = QLineEdit()
-        self.settingsLayout.addWidget(self.nodes_amount_edit, 7, 0, 8, 1, Qt.AlignmentFlag.AlignTop)
+        # Creating the area dimensions section
+        self.area_dimensions_layout = QFormLayout()
 
-        self.battery_capacity_label = QLabel()
-        self.battery_capacity_label.setText("The battery capacity")
-        self.settingsLayout.addWidget(self.battery_capacity_label, 8, 0, 9, 1, Qt.AlignmentFlag.AlignTop)
+        # Defining the height selection line edit
+        self.select_height_box = QLineEdit()
+        self.select_height_box.setStatusTip("Enables the edition of the area height parameter")
+        self.select_height_box.setText(str(self.backend.m_Network.mv_Height))
+        self.select_height_box.textEdited.connect(self.set_height)
 
-        self.battery_capacity = QLineEdit()
-        self.settingsLayout.addWidget(self.battery_capacity, 9, 0, 10, 1, Qt.AlignmentFlag.AlignTop)
+        # Defining the width selection line edit
+        self.select_width_box = QLineEdit()
+        self.select_width_box.setStatusTip("Enables the edition of the area width parameter")
+        self.select_width_box.setText(str(self.backend.m_Network.mv_Width))
+        self.select_width_box.textEdited.connect(self.set_width)
 
+        # Defining the area coverage line edit
+        self.select_minimal_area_coverage_box = QLineEdit()
+        self.select_minimal_area_coverage_box.setStatusTip("Enables the edition of the minimal area coverage parameter")
+        self.select_minimal_area_coverage_box.setText(str(self.backend.m_Network.mv_MinimumCoverage))
+        self.select_minimal_area_coverage_box.textEdited.connect(self.set_minimal_coverage)
+
+        # Adding the boxes to the layout
+        self.area_dimensions_layout.addRow("Area height:", self.select_height_box)
+        self.area_dimensions_layout.addRow("Area width:", self.select_width_box)
+        self.area_dimensions_layout.addRow("Minimal coverage:", self.select_minimal_area_coverage_box)
+
+        #######################################
+        # Node settings panel layout creation #
+        #######################################
+
+        # Node settings layout
+        self.node_settings_layout = QFormLayout()
+
+        # Defining the nodes amount line edit
+        self.nodes_amount_box = QLineEdit()
+        self.nodes_amount_box.setStatusTip("Enables the edition of the nodes amount in the networks")
+        self.nodes_amount_box.setText(str(self.backend.m_Network.mv_NodeAmount))
+        self.nodes_amount_box.textEdited.connect(self.set_nodes_amount)
+
+        # Defining the node's battery capacity line edit
+        self.nodes_battery_capacity_box = QLineEdit()
+        self.nodes_battery_capacity_box.setStatusTip("Enables the edition of the nodes battery capacity")
+        self.nodes_battery_capacity_box.setText(str(self.backend.m_Network.mv_BatteryCapacity))
+        self.nodes_battery_capacity_box.textEdited.connect(self.set_nodes_battery_capacity)
+
+        # Adding the node settings boxes to the layout
+        self.node_settings_layout.addRow("Nodes Amount:", self.nodes_amount_box)
+        self.node_settings_layout.addRow("Battery capacity:", self.nodes_battery_capacity_box)
+
+        ######################################
+        # Runtime info panel layout creation #
+        ######################################
+
+        # Runtime information
+        self.runtime_info_layout = QFormLayout()
+
+        # Will display the current coverage
+        self.current_coverage_label = QLabel()
+        self.current_coverage_label.setText(self.backend.m_Network.mv_CurrentCoverage)
+
+        # Displays the naive alg. times label
+        self.naive_label = QLabel()
+        self.naive_label.setText("Naive algorithm times:")
+
+        # Displays the naive average run times
+        self.naive_average = QLabel()
+        self.naive_average.setText("0.0")
+
+        # Displays the naive last run time
+        self.naive_last = QLabel()
+        self.naive_last.setText("0.0")
+
+        # Displays the optimised alg. times label
+        self.optimised_label = QLabel()
+        self.optimised_label.setText("Optimised algorithm times:")
+
+        # Displays the optimised average run times
+        self.optimised_average = QLabel()
+        self.optimised_average.setText("0.0")
+
+        # Displays the optimised last run time
+        self.optimised_last = QLabel()
+        self.optimised_last.setText("0.0")
+
+        # Adding the labels to the layout
+        self.runtime_info_layout.addWidget(self.naive_label)
+        self.runtime_info_layout.addRow("Mean", self.naive_average)
+        self.runtime_info_layout.addRow("Last", self.naive_last)
+        self.runtime_info_layout.addWidget(self.optimised_label)
+        self.runtime_info_layout.addRow("Mean", self.optimised_average)
+        self.runtime_info_layout.addRow("Last", self.optimised_last)
+        self.runtime_info_layout.addRow("Current coverage:", self.current_coverage_label)
+
+        #######################################################
+        # Adding created layouts to the outer settings layout #
+        #######################################################
+
+        # Adding the final "run" button to the layout
         self.run_simulation_button = QPushButton()
-        self.run_simulation_button.clicked.connect(self.backend.m_Network.run_simulation)
+        self.run_simulation_button.clicked.connect(self.run_simulation)
         self.run_simulation_button.setText("Simulate!")
-        self.settingsLayout.addWidget(self.run_simulation_button, 10, 0, 11, 1, Qt.AlignmentFlag.AlignCenter)
+        
+        self.settingsLayout.addLayout(self.algorithm_layout)
+        self.settingsLayout.addLayout(self.area_dimensions_layout)
+        self.settingsLayout.addLayout(self.node_settings_layout)
+        self.settingsLayout.addLayout(self.runtime_info_layout)
+        self.settingsLayout.addWidget(self.run_simulation_button)
 
-        battery_capacity_change_action = QAction()
+        ##############################################
+        # Adding sublayouts to the main/outer layout #
+        ##############################################
 
-        self.area_widget = PlotCanvas(self, width=10,height=7,dpi=120)
+        self.mainLayout.addLayout(self.plotLayout)
+        self.mainLayout.addLayout(self.settingsLayout)
 
-        self.areaLayout.addWidget(self.area_widget)
-
-        self.baseLayout.addLayout(self.areaLayout)
-        self.baseLayout.addLayout(self.settingsLayout)
-
+        ###########################################################
+        # Setting the created layout as the main displayed widget #
+        ###########################################################
+        
         self.main_widget = QWidget()
+        self.main_widget.setLayout(self.mainLayout)
 
-        self.main_widget.setLayout(self.baseLayout)
+        # Setting as central
         self.setCentralWidget(self.main_widget)
 
+        # Showing the layout on the screen
         self.show()
+
+
+
+
+
+    def set_algorithm(self, index=int):
+        self.backend.m_Network.set_algorithm(index)
+
+
+    def set_height(self, height=str):
+
+        if height != '':
+            if int(height) > 0 and int(height) < 20000:
+
+                self.backend.m_Network.set_height(int(height))
+
+                self.select_height_box.setText(str(self.backend.m_Network.mv_Height))
+
+                self.draw_plot()
+
+
+    def set_width(self, width=str):
+
+        if width!='':
+            if int(width) > 0 and int(width) < 20000:
+
+                self.backend.m_Network.set_width(int(width))
+
+                self.select_width_box.setText(str(self.backend.m_Network.mv_Width))
+
+                self.draw_plot()
+
+
+    def set_minimal_coverage(self, coverage=str):
+
+        if(int(coverage) > 0 and int(coverage) <= 100):
+            self.backend.m_Network.set_minimum_coverage_value(int(coverage))
+
+            self.select_minimal_area_coverage_box.setText(str(self.backend.m_Network.mv_MinimumCoverage))
+
+        else:
+            print("Here I must show and error with OK button")
+
+
+    def set_nodes_amount(self, amount=str):
+
+        if amount != '':
+            if int(amount) > 0 and int(amount) < 2000:
+        
+                self.backend.m_Network.set_node_amount(int(amount))
+
+                self.nodes_amount_box.setText(str(self.backend.m_Network.mv_NodeAmount))
+
+                self.draw_plot()
+
+
+    def set_nodes_battery_capacity(self, capacity=str):
+        
+        if capacity != '':
+            if int(capacity) > 0 and int(capacity) < 5000:
+                self.backend.m_Network.set_node_battery_capacity(int(capacity))
+
+                self.nodes_battery_capacity_box.setText(str(self.backend.m_Network.mv_BatteryCapacity))
+
+
+    def draw_plot(self):
+        self.area_widget.clearAxes()
+
+        temp = self.backend.m_Network.get_plot_data()
+
+        self.area_widget.createAreaPlot(temp[0], temp[1], temp[2])
+
+        self.area_widget.updateAxes()
+
+
+    def run_simulation(self):
+        self.draw_plot()
+        self.backend.run_simulation()
+        self.draw_plot()
+        self.naive_last.setText(str(self.backend.mo_DataCollector.mv_NaiveLastTime))
+        
+
 
