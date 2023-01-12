@@ -1,20 +1,12 @@
 
-###############################################
-# Battery object, implemented in every node,  #
-# initialised via taking in the capacity in   #
-# mAH for easy reference on which capacity is #
-# large and which is small. Then it converts  #
-# it to the amount of charge stored in mA for #
-# easy power usage simulation                 #
-###############################################
 
+################################################
+# Battery object, implemented later in every   #
+# node object. Contains a charge in J, for     #
+# the ease of use. Only operation availabe is  #
+# substracting from the charge, until it empty #
+################################################
 
-# mo - member object
-# ml - member list
-# md - member dictionary
-# mt - member tuple
-# mv - member variable
-# mb - member boolean
 
 
 #####################
@@ -31,7 +23,6 @@ class Battery():
         #############
         # Variables #
         #############
-
 
         # A value of charge stored in Joules
         self.mv_DesignedCapacity = capacity_J
@@ -55,23 +46,26 @@ class Battery():
         self.mv_CurrentCapacity = self.mv_DesignedCapacity
 
 
-    # Battery capacity getter in mah
+    # Designed battery charge getter
     def get_battery_designed_capacity(self):
 
         return self.mv_DesignedCapacity
 
 
-    # Battery capacity getter in ma
+    # Current battery charge getter
     def get_battery_current_capacity(self):
 
         return self.mv_CurrentCapacity
 
 
-    # Function that effectively discharges the cell
+    # Discharges the cell until empty
     def subtract_energy(self, amount=int):
 
-        # Subtracting the energy used by the node, after calculating it in the energy management module
-        self.mv_CurrentCapacity -= amount
+        # Subtracting the energy, it tries to substract from empty, throws an exception
+        if self.mv_CurrentCapacity != 0:
+            self.mv_CurrentCapacity -= amount
+        else:
+            raise Exception("Battery empty")
 
 
     # Returns the percent of charge left
