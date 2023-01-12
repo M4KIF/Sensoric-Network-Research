@@ -25,13 +25,15 @@ from .battery import Battery
 # Contains the scientific constatns
 from scipy import constants as sc_const
 
+from math import sqrt, pow
+
 
 #####################
 # Object definition #
 #####################
 
 
-class EMU():
+class EMU(Battery):
 
     #########################################
     # Mean energy usage figures based on    #
@@ -48,7 +50,7 @@ class EMU():
     # steps, co a 100m transmission can draw even more than 2 times less power than fe. 200m transmission
 
     # multiplied by 1000 to make things quicker
-    md_TrasmissionPowerLevels = {
+    md_TransmissionPowerConsumption = {
         "1":4000,
         "3":6000,
         "7":8000,
@@ -67,20 +69,42 @@ class EMU():
     mv_ReceiverActionConsumption = 200
 
     # Energy that the sensors take while collecting data
-    mv_SensorsActionConsumption = 100
+    mv_SamplingConsumption = 100
 
     # Energy that either sensing data/receiving/transmitting/
     # neighbour_locating calculations take
     mv_ComputingActionConsumption = 100
 
-    # Sleep energy Consumption
+    # calculate_sleep_consumption energy Consumption
     mv_SleepConsumption = 0.05
+
+    # ACK packet size in bits
+    mv_AcknowledgePacketSize = 368
+
+    # The size of a data packet
+    mv_DataPacketSize = 256000
+
+    # Transmission speed in bits/s
+    mv_TransmissionRate = 800000
 
     #########################
     # Objects and variables #
     #########################
 
-    mo_Battery = None
+    #0.0000005
+    mv_SensingPowerConsumption = 0.0000005
+
+    # Energy consumed per bit in Joules
+    #0.00000005
+    mv_AntennaPowerConsumption = 0.00000005
+
+    # Energy consumed in Joules per bit per meter squared
+    #0.00000000001
+    mv_AmplifierLowPowerConsumption = 0.00000000001
+
+    # Energy consumed in Joules per bit per meter quadrupled
+    #0.0000000000000013
+    mv_AmplifierHighPowerConsumption = 0.0000000000000013
 
     #######################
     # Methods definitions #
@@ -88,14 +112,38 @@ class EMU():
 
 
     # Takes the battery capacity in mAH that the battery should be set with
-    def __init__(self, capacity_mah=100):
+    def __init__(self, capacity_J=1):
 
-        # Initialising the battery with a choosen value
-        self.mo_Battery = Battery(capacity_mah)
+        # Initialising the battery class from which the EMU inherits
+        super().__init__(capacity_J)
 
 
-    def ack_transmission_consumption(self, power_level=str):
-        return self.md_TrasmissionPowerLevels[power_level]
+    ##############################
+    # Member methods definitions #
+    ##############################
+
+
+    def get_sensing_consumption(self):
+        return self.mv_SensingPowerConsumption
+
+
+    def calculate_transmission_consumption(self, packet_size=int, distance=int):
+
+        if distance < 25:
+            return (packet_size*self.mv_AntennaPowerConsumption 
+            + packet_size*self.mv_AmplifierLowPowerConsumption*sqrt(distance))
+        else:
+            return (packet_size*self.mv_AntennaPowerConsumption 
+            + packet_size*self.mv_AmplifierHighPowerConsumption*pow(distance, 4))
+
+
+    def calculate_receiver_consumption(self, packet_size):
+        return packet_size*self.mv_AntennaPowerConsumption
+
+
+    ##############
+    # Depracated #
+    ##############
 
 
     # Calculates the signal propagation time
@@ -104,67 +152,74 @@ class EMU():
         return distance / sc_const.speed_of_light
 
 
-    def calculate_data_aggregation(self,distance=int,data_size=int,transmission_rate=int):
-        # Substracting from the battery
-        self.mo_Battery.subtract_energy(2 * self.ack_transmission_consumption("1")*368/transmission_rate)
+    def calculate_ack_consumption(self, power_level=str):
+        return (self.mv_AcknowledgePacketSize/self.mv_TransmissionRate * self.md_TransmissionPowerConsumption[power_level])
 
-        self.mo_Battery.subtract_energy(self.md_TrasmissionPowerLevels["1"] * data_size/transmission_rate)
+
+    def calculate_aggregation_consumption(self,distance=int):
+        
+        # Calculating the power consumption value
+        value = 2 * self.calculate_ack_consumption("1")*368/self.mv_TransmissionRate
+        value+=self.md_TransmissionPowerConsumption["1"] * self.mv_DataPacketSize/self.mv_TransmissionRate
+        
+        return value
+
 
     # Calculates the energy consumed while transmitting data
-    def calculate_transmission_action_consumption(self, distance=int, data_size=int, transmission_rate=int):
+    def calculate_transmiting_consumption(self, distance=int):
         
         # Adding the propagation delay to the time
+        value = 0
 
         # Substracting from the battery
         if distance < 50:
-            self.mo_Battery.subtract_energy(4 * self.ack_transmission_consumption("1")*368/transmission_rate)
+            
+            # Adding ack sending consumption
+            value+= 4 * self.calculate_ack_consumption("1")*368/self.mv_TransmissionRate
+            # Adding transmission power consumption
+            value+= self.md_TransmissionPowerConsumption["1"] * self.mv_DataPacketSize/self.mv_TransmissionRate
 
-            self.mo_Battery.subtract_energy(self.md_TrasmissionPowerLevels["1"] * data_size/transmission_rate)
         elif distance > 50 and distance < 200:
-            self.mo_Battery.subtract_energy(4 * self.ack_transmission_consumption("15")*368/transmission_rate)
+            
+             # Adding ack sending consumption
+            value+= 4 * self.calculate_ack_consumption("15")*368/self.mv_TransmissionRate
+            # Adding transmission power consumption
+            value+= self.md_TransmissionPowerConsumption["15"] * self.mv_DataPacketSize/self.mv_TransmissionRate
 
-            self.mo_Battery.subtract_energy(self.md_TrasmissionPowerLevels["15"] * data_size/transmission_rate)
         elif distance > 200:
-            self.mo_Battery.subtract_energy(4 * self.ack_transmission_consumption("31")*368/transmission_rate)
 
-            self.mo_Battery.subtract_energy(self.md_TrasmissionPowerLevels["31"] * data_size/transmission_rate)
+             # Adding ack sending consumption
+            value+= 4 * self.calculate_ack_consumption("31")*368/self.mv_TransmissionRate
+            # Adding transmission power consumption
+            value+= self.md_TransmissionPowerConsumption["31"] * self.mv_DataPacketSize/self.mv_TransmissionRate
+
+        return value
 
 
     # Calculates the energy consumed while receiving data
-    def calculate_receive_action_consumption(self, distance=float, data_size=int, transmission_rate=int):
+    def calculate_receiving_consumption(self, distance=float):
 
         # Adding the propagation delay to the time
-        
-        #
-        self.mo_Battery.subtract_energy(4 * self.ack_transmission_consumption("15")*368/transmission_rate)
+        value = 4 * self.calculate_ack_consumption("15")*368/self.mv_TransmissionRate
+        value += self.mv_ReceiverActionConsumption * self.mv_DataPacketSize/self.mv_TransmissionRate
 
-        # Substracting from the battery
-        self.mo_Battery.subtract_energy(self.mv_ReceiverActionConsumption * data_size/transmission_rate)
+        return value
 
 
     # Calculates the energy consumed while the node's sensor was collecting the data
-    def calculate_sensor_action_consumption(self):
-        
-        # Substracting from the battery
-        self.mo_Battery.subtract_energy(self.mv_SensorsActionConsumption)
+    def calculate_sampling_consumption(self):
+
+        return self.mv_SamplingConsumption
 
 
     # Calculates the energy consumed while doing calculations 
-    def calculate_computing_action_consumption(self):
-        
-        # Substracting from the battery
-        self.mo_Battery.subtract_energy(self.mv_ComputingActionConsumption)
+    def calculate_computing_consumption(self):
+
+        return self.mv_ComputingConsumption
 
 
     # Simulates the device staying inactive
-    def sleep(self, time):
+    def calculate_sleep_consumption(self, time):
 
         # Substracting the energy from the battery
-        self.mo_Battery.subtract_energy(self.mv_SleepConsumption * time)
-
-
-    # Calculates the percentage of the battery left based on the data from the battery
-    def get_charge_percentage_left(self):
-        
-        # Getting the information from the Battery
-        return self.mo_Battery.get_charge_percentage_left()
+        return self.mv_SleepConsumption * time

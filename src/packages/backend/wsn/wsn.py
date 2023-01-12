@@ -17,6 +17,7 @@
 
 # For enabling the network functions
 from .. import wsn_nodes as components
+from numpy.random import uniform
 import random
 import shapely
 
@@ -83,6 +84,10 @@ class SensoricNetwork():
         ######################
         # Nodes, Groups etc. #
         ######################
+
+        # Contains the base station
+        self.mv_BaseStation = components.Node(battery_capacity, self.mv_AreaPolygon.point_on_surface().coords[:][0][0], 
+        self.mv_AreaPolygon.point_on_surface().coords[:][0][1])
 
         # List of all of the sinks that are currently used in any of the solutions
         self.ml_SinkNodes = []
@@ -286,12 +291,16 @@ class SensoricNetwork():
             area_bounds = self.mv_AreaPolygon.bounds
 
             # Creating a node with given battery capacity and random points taken from the area that shall be covered
-            self.ml_Nodes.append(components.Node(self.mv_BatteryCapacity,
-            random.randint(int(area_bounds[0]), int(area_bounds[2])),
-            random.randint(int(area_bounds[1]), int(area_bounds[3]))))
+            self.ml_Nodes.append(components.Node(self.mv_BatteryCapacity, uniform(0.0, self.mv_Width), uniform(0.0, self.mv_Height)))
 
         self.mb_NetworkReady = True
         self.mb_NodesInitialised = True
+
+        self.mv_BaseStation=components.Node(self.mv_BatteryCapacity, self.mv_AreaPolygon.point_on_surface().coords[:][0][0], 
+        self.mv_AreaPolygon.point_on_surface().coords[:][0][1])
+        self.mv_BaseStation.activate_base_station_flag()
+
+        self.ml_Nodes.append(self.mv_BaseStation)
 
         self.calculate_plot_data()
 
@@ -422,7 +431,7 @@ class SensoricNetwork():
             self.mv_ActiveNodes+=1
 
         # Contains a circle in which a sink has to be found
-        possible_sink_location = self.mv_AreaPolygon.point_on_surface().buffer(200)
+        possible_sink_location = self.mv_AreaPolygon.point_on_surface().buffer(50)
 
         # Current lowest distance from the middle point
         lowest_distance = None
@@ -498,16 +507,16 @@ class SensoricNetwork():
 
             for node in self.ml_Nodes:
                 if node.is_active() and len(node.ml_Path) > 0:
-                    node.transmit_data(10000*int(shapely.distance(node.get_localization(), node.ml_Path[0].get_localization())))
+                    node.transmit_data(int(shapely.distance(node.get_localization(), node.ml_Path[0].get_localization())))
                     self.calculate_plot_data()
                     if len(node.ml_Path) > 1:
                         for element in node.ml_Path:
                             if element.is_active():
                                 if id(element) != id(sink):
-                                    element.aggregate_data(10000*int(shapely.distance(node.get_localization(), element.get_localization())))
+                                    element.aggregate_data(int(shapely.distance(node.get_localization(), element.get_localization())))
                                     self.calculate_plot_data()
                                 else:
-                                    element.receive_data(10000*int(shapely.distance(node.get_localization(), element.get_localization())))
+                                    element.receive_data()
                                     self.calculate_plot_data()
                                 transfer_done = True
                             else:
@@ -527,6 +536,43 @@ class SensoricNetwork():
             if self.mv_ActiveNodes == 0:
                 print("Out?")
                 break
+
+    def naive_algorithm_new(self):
+
+        #####################################
+        # Nodes setup, searching for a sink #
+        #####################################
+
+        for node in self.ml_Nodes:
+            if not node.is_base_station():
+                node.set_base_station(self.mv_BaseStation)
+                node.activate()
+                self.mv_ActiveNodes+=1
+
+        # Sending hello message to the base station
+        for node in self.ml_Nodes:
+            if node.is_active():
+                node.transmit_status(int(shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization())))
+
+        while self.calculate_coverage() > self.mv_MinimumCoverage:
+
+            print(self.mv_ActiveNodes)
+
+            for node in self.ml_Nodes:
+                if node.is_active():
+                    node.transmit_data(int(shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization())))
+
+            for node in self.ml_Nodes:
+                if node.get_battery_level() < 5 and node.is_active():
+                    node.deactivate()
+                    self.mv_ActiveNodes-=1
+
+            if self.mv_ActiveNodes == 0:
+                break
+            
+
+    def pso_algorithm(self):
+        print()
 
     
     def calculate_plot_data(self):
@@ -552,6 +598,10 @@ class SensoricNetwork():
             node.ml_AggregatingNodes.clear()
             node.ml_SinkNodes.clear()
             node.ml_Path.clear()
+            node.set_battery_capacity(self.mv_BatteryCapacity)
+            node.deactivate()
+
+        self.mv_ActiveNodes = 0
 
         self.ml_SinkNodes.clear()
 

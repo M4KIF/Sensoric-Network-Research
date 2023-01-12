@@ -30,7 +30,7 @@ from PyQt5 import QtCore
 class wsnSimulator():
 
     def __init__(self):
-        self.m_Network = network.SensoricNetwork(width=1000, height=1000)
+        self.m_Network = network.SensoricNetwork(node_amount=50, battery_capacity=1, width=100, height=100,)
 
         self.m_Network.initiate_network()
 
@@ -45,7 +45,7 @@ class wsnSimulator():
     def run_simulation(self):
         if self.m_Network.mv_CurrentAlgorithm == self.m_Network.ml_Algorithms[0]:
             self.mo_DataCollector.start_timer()
-            self.m_Network.naive_algorithm()
+            self.m_Network.naive_algorithm_new()
             self.mo_DataCollector.end_timer()
             self.mo_DataCollector.save_result_as_naive()
         else:

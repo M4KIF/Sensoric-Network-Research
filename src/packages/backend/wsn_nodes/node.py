@@ -53,17 +53,15 @@ class Node():
         # A point that contains the coordinates of this sensor node
         self.mv_Location = shapely.Point(x, y)
 
-        # Contains the range of a node in meters, defaults to 250m
-        self.mv_Range = 200
+        # Contains the sensing range of a node in meters, defaults to 2 meters
+        self.mv_SensingRange = 10
 
         # Contains the area that the node can access
-        self.mv_Coverage = self.mv_Location.buffer(self.mv_Range)
+        self.mv_SensingArea = self.mv_Location.buffer(self.mv_SensingRange)
 
         ###########################
         # Other nodes information #
         ###########################
-
-        # Can contain tuples of information, node and needed hops
 
         # Conatains the list of nodes that are within range
         self.ml_AdjacentNodes = []
@@ -73,6 +71,9 @@ class Node():
 
         # Contains the information about sink nodes
         self.ml_SinkNodes = []
+
+        # Base station
+        self.mv_BaseStation = None
 
         # Basic path to sink node
         self.ml_Path = list()
@@ -100,6 +101,9 @@ class Node():
         ############
         # Booleans #
         ############
+
+        # Activated only if this node is a Base Node
+        self.mb_BaseStation = False
 
         # Activated only if this node is a sink
         self.mb_Sink = False
@@ -144,11 +148,24 @@ class Node():
     def is_active(self):
         return self.mb_Active
 
+    def activate_base_station_flag(self):
+        self.mb_BaseStation = True
+
+    def deactivate_base_station_flag(self):
+        self.mb_BaseStation = False
+
+    def is_base_station(self):
+        return self.mb_BaseStation
+
+
+    def set_base_station(self, base_station):
+        self.mv_BaseStation = base_station
+
 
     # Sets the battery size
-    def set_battery_capacity(self, capacity=int):
+    def set_battery_capacity(self, capacity):
         # A little shortcut
-        self.mo_SOC.mo_EnergyManagement.mo_Battery.set_battery_capacity(capacity)
+        self.mo_SOC.set_battery_capacity(capacity)
 
 
     # Localizes the node in the environment, a simulation of an gps module
@@ -157,7 +174,7 @@ class Node():
         # Setting the device localisation
         self.mv_Location = shapely.Point(x, y)
 
-        self.mv_Coverage = self.mv_Location.buffer(self.mv_Range)
+        self.mv_SensingArea = self.mv_Location.buffer(self.mv_SensingRange)
 
 
     # Sets the id of a sink node
@@ -191,17 +208,17 @@ class Node():
 
     
     def get_range(self):
-        return self.mv_Range
+        return self.mv_SensingRange
 
 
     def get_range_area(self):
-        return self.mv_Coverage
+        return self.mv_SensingArea
 
 
     def get_battery_level(self):
         
         # Getting the cell's current capacity
-        level = self.mo_SOC.get_battery_level()
+        level = self.mo_SOC.get_charge_percentage_left()
 
         # Checking if it is above the threshold
         if level <= self.mv_BatteryLowThreshold and not self.mb_LowBattery:
@@ -227,7 +244,7 @@ class Node():
         
         for node in nodes_list:
             
-            if self.distance_from(node.get_localisation()) < self.mv_Range:
+            if self.distance_from(node.get_localisation()) < self.mv_SensingRange:
                 self.add_neighbour(id(node))
 
 
@@ -243,20 +260,20 @@ class Node():
         self.mv_Color = 50
 
         # Sends the signal to SOC to take care of data collection and energy management
-        self.mo_SOC.collect_sensor_data()
+        self.mo_SOC.sense_data()
 
         time.sleep(0.05)
         self.mv_Color = 20
 
 
     # Receives the data packet
-    def receive_data(self, distance=int):
+    def receive_data(self):
 
         self.mv_Color = 50
 
         # Sends the signal to SOC that It has to receive the data wirelesly
         # of course, energy management is obvious
-        self.mo_SOC.receive_data(distance)
+        self.mo_SOC.receive_data()
 
         time.sleep(0.05)
         self.mv_Color = 20
@@ -268,10 +285,13 @@ class Node():
         self.mv_Color = 50
 
         # Informs the SOC that It has to follow through the transmission procedures
-        self.mo_SOC.transmit_data(distance)
+        self.mo_SOC.send_data(distance)
 
-        time.sleep(0.05)
         self.mv_Color = 20
+
+
+    def transmit_status(self, distance=int):
+        self.mo_SOC.send_status(distance)
 
     
     def aggregate_data(self, distance=int):

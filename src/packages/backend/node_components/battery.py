@@ -25,32 +25,31 @@
 class Battery():
 
 
-    ###########
-    # Methods #
-    ###########
-
-
     # Takes in the battery capacity as a default argument
-    def __init__(self, capacity_mah=100):
+    def __init__(self, capacity_J=1):
         
         #############
         # Variables #
         #############
 
 
-        # A value of charge that a fully chareged cell contains in mAH,
-        # not using Wh for simplicity
-        self.mv_DesignedCapacity = capacity_mah * 3600
+        # A value of charge stored in Joules
+        self.mv_DesignedCapacity = capacity_J
 
         # Updated constantly
         self.mv_CurrentCapacity = self.mv_DesignedCapacity
 
 
+    ##############################
+    # Member methods definitions #
+    ##############################
+
+
     # A simple battery capacity setter
-    def set_battery_capacity(self, capacity_mah=int):
+    def set_battery_capacity(self, capacity_J):
 
         # Setting the cell capacity in mA
-        self.mv_DesignedCapacity = capacity_mah * 3600
+        self.mv_DesignedCapacity = capacity_J
 
         # Setting current battery capacity as the designed capacity
         self.mv_CurrentCapacity = self.mv_DesignedCapacity
@@ -69,7 +68,7 @@ class Battery():
 
 
     # Function that effectively discharges the cell
-    def subtract_energy(self, amount):
+    def subtract_energy(self, amount=int):
 
         # Subtracting the energy used by the node, after calculating it in the energy management module
         self.mv_CurrentCapacity -= amount

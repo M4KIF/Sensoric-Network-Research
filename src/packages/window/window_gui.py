@@ -352,6 +352,10 @@ class Window(QMainWindow):
         self.backend.run_simulation()
         self.draw_plot()
         self.naive_last.setText(str(self.backend.mo_DataCollector.mv_NaiveLastTime))
+        try:
+            self.naive_average.setText(str(self.backend.mo_DataCollector.calculate_mean_from_naive_times()))
+        except Exception as e:
+            print(e[0])
         
 
 

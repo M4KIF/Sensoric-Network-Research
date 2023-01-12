@@ -42,6 +42,14 @@ class SOC():
 
     mv_LastTimeActive = None
 
+    # New part
+    
+    # The size of hello/status message
+    mv_StatusMessageSize = 200
+
+    # The size of the data packet from the node
+    mv_DataPacketSize = 4000
+
     #######################
     # Methods definitions #
     #######################
@@ -57,36 +65,43 @@ class SOC():
         self.mv_LastTimeActive = time.time()
 
 
-    # Simulating data transmission, the time is dependent on the distance between nodes
-    def transmit_data(self, distance=int):
+    # New stuff
 
-        # Takes the current time
-        current_time = time.time()
-
-        # Substracts the amount of energy that the device used while staying inactive
-        self.mo_EnergyManagement.sleep(current_time - self.mv_LastTimeActive)
-
-        # Updates the last active variable
-        self.mv_LastTimeActive = current_time
-
-        # Sending the amout of time spend to the energy management unit, assuming that the data packets are very small
-        self.mo_EnergyManagement.calculate_transmission_action_consumption(distance, 256000, 800000)
+    def set_battery_capacity(self, capacity):
+        self.mo_EnergyManagement.set_battery_capacity(capacity)
 
 
-    # Simulating data reciving, as above, time dependent on the distance
-    def receive_data(self, distance=int):
+    def send_status(self, distance=int):
+        self.mo_EnergyManagement.subtract_energy(
+            self.mo_EnergyManagement.calculate_transmission_consumption(self.mv_StatusMessageSize, distance)
+        )
 
-        # Takes the current time
-        current_time = time.time()
 
-        # Substracts the amount of energy that the device used while staying inactive
-        self.mo_EnergyManagement.sleep(current_time - self.mv_LastTimeActive)
+    def send_data(self, distance=int):
+        self.mo_EnergyManagement.subtract_energy(
+            self.mo_EnergyManagement.calculate_transmission_consumption(self.mv_DataPacketSize, distance)
+        )
 
-        # Updates the last active variable
-        self.mv_LastTimeActive = current_time
 
-        # Sending the amout of time spend to the energy management unit, assuming that the data packets are very small
-        self.mo_EnergyManagement.calculate_receive_action_consumption(distance, 256000, 800000)
+    def receive_data(self):
+        self.mo_EnergyManagement.subtract_energy(
+            self.mo_EnergyManagement.calculate_receiver_consumption(self.mv_DataPacketSize)
+        )
+
+
+    def receive_status(self):
+        self.mo_EnergyManagement.subtract_energy(
+            self.mo_EnergyManagement.calculate_receiver_consumption(self.mv_StatusMessageSize)
+        )
+
+
+    def sense_data(self):
+        self.mo_EnergyManagement.subtract_energy(
+            self.mo_EnergyManagement.get_sensing_consumption()
+        )
+
+
+    # Depracated
 
 
     def aggregate_data(self, distance=int):
@@ -95,30 +110,38 @@ class SOC():
         current_time = time.time()
 
         # Substracts the amount of energy that the device used while staying inactive
-        self.mo_EnergyManagement.sleep(current_time - self.mv_LastTimeActive)
+        consumption = self.mo_EnergyManagement.calculate_sleep_consumption(current_time - self.mv_LastTimeActive)
 
         # Updates the last active variable
         self.mv_LastTimeActive = current_time
 
-        # Sending the amout of time spend to the energy management unit, assuming that the data packets are very small
-        self.mo_EnergyManagement.calculate_data_aggregation(distance, 256000, 800000)
+        # Calculating the data aggregation energy consumption
+        if(consumption!=0):
+            consumption += self.mo_EnergyManagement.calculate_aggregation_consumption(distance)
+        else:
+            consumption = self.mo_EnergyManagement.calculate_aggregation_consumption(distance)
 
-
+        self.mo_EnergyManagement.subtract_energy(consumption)
 
     # Simulates the action of collecting the data from the sensors
-    def collect_sensor_data(self):
+    def sample(self):
 
         # Takes the current time
         current_time = time.time()
 
         # Substracts the amount of energy that the device used while staying inactive
-        self.mo_EnergyManagement.sleep(current_time - self.mv_LastTimeActive)
+        consumption = self.mo_EnergyManagement.calculate_sleep_consumption(current_time - self.mv_LastTimeActive)
 
         # Updates the last active variable
         self.mv_LastTimeActive = current_time
         
         # The collection of data uses a constant amount of energy, that is equal to 1ns of calculations
-        self.mo_EnergyManagement.calculate_sensor_action_consumption()
+        if consumption != 0:
+            consumption += self.mo_EnergyManagement.calculate_sampling_consumption()
+        else:
+            consumption = self.mo_EnergyManagement.calculate_sampling_consumption()
+
+        self.mo_EnergyManagement.subtract_energy(consumption)
 
 
     # Simulates the computing in the WSN, computing the transmission action, receiving or collecting the data.
@@ -128,22 +151,27 @@ class SOC():
         current_time = time.time()
 
         # Substracts the amount of energy that the device used while staying inactive
-        self.mo_EnergyManagement.sleep(current_time - self.mv_LastTimeActive)
+        consumption = self.mo_EnergyManagement.calculate_sleep_consumption(current_time - self.mv_LastTimeActive)
 
         # Updates the last active variable
         self.mv_LastTimeActive = current_time
 
         # The collection of data uses a constant amount of energy, that is equal to 1ns of calculations
-        self.mo_EnergyManagement.calculate_computing_action_consumption()
+        if consumption != 0:
+            consumption += self.mo_EnergyManagement.calculate_computing_consumption()
+        else:
+            consumption = self.mo_EnergyManagement.calculate_computing_consumption()
+
+        self.mo_EnergyManagement.subtract_energy(consumption)
 
 
     def sleep(self, time=float):
 
-        self.mo_EnergyManagement.sleep(time)
+        self.mo_EnergyManagement.subtract_energy(self.mo_EnergyManagement.calculate_sleep_consumption(time))
 
 
     # Checks the device battery level
-    def get_battery_level(self):
+    def get_charge_percentage_left(self):
         
         # Asks the energy management module for battery status
         return self.mo_EnergyManagement.get_charge_percentage_left()
