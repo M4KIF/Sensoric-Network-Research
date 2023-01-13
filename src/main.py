@@ -1,4 +1,6 @@
 
+
+
 ##################################################
 # Main code of the Sensoric network research app #
 # Made by Jakub Koterba, Karolina Bińka,         #
@@ -11,14 +13,17 @@
 # Imports #
 ###########
 
+
 # Main app structure
 from packages.window import window_gui as gui
 
 import sys
 
+
 #################
 # Main function #
 #################
+
 
 def main():
     print("Is it okey?")

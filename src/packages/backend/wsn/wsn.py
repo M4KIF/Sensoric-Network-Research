@@ -537,6 +537,8 @@ class SensoricNetwork():
                 print("Out?")
                 break
 
+    
+    # Iterative naive algorithm
     def naive_algorithm_new(self):
 
         #####################################
@@ -570,8 +572,13 @@ class SensoricNetwork():
             if self.mv_ActiveNodes == 0:
                 break
             
+    #############################################
+    # Here is the biggest thing of this program #
+    #############################################
 
+    # The PSO algorithm that implements the Fitness functions etc.
     def pso_algorithm(self):
+
         print()
 
     

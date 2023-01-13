@@ -1,4 +1,6 @@
 
+
+
 #########################################
 # Takes the sensoric network and data   #
 # collecting objects to create a        #
@@ -14,6 +16,7 @@
 # Includes #
 ############
 
+
 # The WSN object
 from .. import wsn as network
 
@@ -23,9 +26,11 @@ from .. import misc as data
 # For enabling the multithreading in the main App by using signals
 from PyQt5 import QtCore
 
+
 #####################
 # Object definition #
 #####################
+
 
 class wsnSimulator():
 

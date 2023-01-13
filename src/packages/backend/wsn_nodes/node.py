@@ -34,10 +34,17 @@ import time
 # Object definition #
 #####################
 
+
 class Node():
 
+
+    ###################################
+    # Base object methods definitions #
+    ###################################
+
+
     # Initialises the node with needed data, ie. its battery capacity, location, and possibly id
-    def __init__(self, battery_capacity=int(100), x=int(0), y=int(0), node_id=int):
+    def __init__(self, battery_capacity=int(100), x=int(0), y=int(0)):
 
         ###########
         # Objects #
@@ -89,12 +96,6 @@ class Node():
         # Miscellaneous #
         #################
 
-        # This node's id
-        self.mv_ID = None
-
-        # The sink node id
-        self.mv_SinkID = None
-
         # For the plotting of the color
         self.mv_Color = 80
 
@@ -108,7 +109,7 @@ class Node():
         # Activated only if this node is a sink
         self.mb_Sink = False
 
-    #    Activated only if this node is an aggregating node
+        # Activated only if this node is an aggregating node
         self.mb_Aggregating = False
 
         # Activated only if this node is the sensing node
@@ -123,11 +124,14 @@ class Node():
         # The default "low battery" warning threshold
         self.mv_BatteryLowThreshold = 20
 
+
+    # Clears up after the node just to be sure
     def __del__(self):
         
         self.clear()
 
 
+    # Clears all of the copy containing lists
     def clear(self):
         # Cleaning the nodes stored in the other nodes list
         self.ml_AdjacentNodes.clear()
@@ -136,26 +140,41 @@ class Node():
         self.ml_SinkNodes.clear()
 
 
-    #
+    #########################
+    # Boolean flags methods #
+    #########################
+
+
+    # Activates the node status flag
     def activate(self):
         self.mb_Active = True
 
-
+    
+    # Deactivates the node status flag
     def deactivate(self):
         self.mb_Active = False
 
 
+    # Checks the node status flag
     def is_active(self):
         return self.mb_Active
+
 
     def activate_base_station_flag(self):
         self.mb_BaseStation = True
 
+
     def deactivate_base_station_flag(self):
         self.mb_BaseStation = False
 
+
     def is_base_station(self):
         return self.mb_BaseStation
+
+
+    #
+    # Setters
+    #
 
 
     def set_base_station(self, base_station):
@@ -175,6 +194,11 @@ class Node():
         self.mv_Location = shapely.Point(x, y)
 
         self.mv_SensingArea = self.mv_Location.buffer(self.mv_SensingRange)
+
+
+    #
+    #
+    #
 
 
     # Sets the id of a sink node

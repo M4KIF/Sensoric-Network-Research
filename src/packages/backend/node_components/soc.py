@@ -40,13 +40,13 @@ class SOC():
         #########################
 
         # Initialising the energy management unit with given battery capacity, defaults to 100 mAH
-        self.mo_EnergyManagement = EMU(battery_capacity_j=1)
+        self.mo_EnergyManagement = EMU(battery_capacity_j)
 
         # The size of hello/status message
-        mv_StatusMessageSize = 200
+        self.mv_StatusMessageSize = 200
 
         # The size of the data packet from the node
-        mv_DataPacketSize = 4000
+        self.mv_DataPacketSize = 4000
 
 
     #######################

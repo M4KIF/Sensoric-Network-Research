@@ -56,10 +56,10 @@ class EMU(Battery):
 
 
     # Takes the battery capacity in mAH that the battery should be set with
-    def __init__(self, capacity_J=1):
+    def __init__(self, capacity_j=1):
 
         # Initialising the battery class from which the EMU inherits
-        super().__init__(capacity_J)
+        super().__init__(capacity_j)
 
 
     ##############################
