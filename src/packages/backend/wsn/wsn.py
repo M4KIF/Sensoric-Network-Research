@@ -233,8 +233,8 @@ class SensoricNetwork():
         # Miscellaneous #
         #################
 
-        # Max iterations of the PSO algorithm
-        self.mv_MaxIteration = 2500
+        # Max iterations of the PSO algorithm, should be 2500
+        self.mv_MaxIteration = 10
 
         # Stores the "uptime" of the network
         self.mv_Lifetime = None
@@ -737,7 +737,7 @@ class SensoricNetwork():
 
         # Calculating the number of nodes that are contained withing the area of the CH candidate
         for node in self.ml_Nodes:
-            if area.intersects(node.get_localization()):
+            if shapely.intersects(area, node.get_localization()):
                 amount_contained+=1
 
         return amount_contained
@@ -760,10 +760,12 @@ class SensoricNetwork():
                 if shapely.intersects(area, temp):
                     intersection = shapely.intersection(area, temp)
 
-                    for node in self.ml_Nodes:
+                    if not intersection.area == 0:
 
-                        if shapely.contains_xy(intersection, node.get_localization()):
-                            particles_in_intersections.add(id(node))
+                        for node in self.ml_Nodes:
+
+                            if shapely.contains(intersection, node.get_localization()):
+                                particles_in_intersections.add(id(node))
 
         # Returning the value
         return len(particles_in_intersections)
@@ -783,19 +785,17 @@ class SensoricNetwork():
         # Calculating the w value
         w = w_max - (w_max-w_min)/self.mv_MaxIteration * iteration
 
-        x_position = particle.get_position().coords[:][0][0]
-
         # X coordinate calculations, the velocity is understood as "meters" per iteration of the algorithm
         particle.set_x_velocity(
             w * particle.get_x_velocity() +
-            c1 * random.randrange(0, 1) * (particle.get_pbest().coords[:][0][0] - particle.get_x_velocity()) +
-            c2 * random.randrange(0, 1) * (particle.get_gbest().coords[:][0][0] - particle.get_x_velocity())
+            c1 * random.randrange(0, 1) * (particle.get_pbest().get_position().coords[:][0][0] - particle.get_x_velocity()) +
+            c2 * random.randrange(0, 1) * (particle.get_gbest().get_position().coords[:][0][0] - particle.get_x_velocity())
         )
 
         particle.set_z_velocity(
             w * particle.get_z_velocity() +
-            c1 * random.randrange(0, 1) * (particle.get_pbest().coords[:][0][1] - particle.get_z_velocity()) +
-            c2 * random.randrange(0, 1) * (particle.get_gbest().coords[:][0][1] - particle.get_z_velocity())
+            c1 * random.randrange(0, 1) * (particle.get_pbest().get_position().coords[:][0][1] - particle.get_z_velocity()) +
+            c2 * random.randrange(0, 1) * (particle.get_gbest().get_position().coords[:][0][1] - particle.get_z_velocity())
         )
 
 
@@ -804,8 +804,8 @@ class SensoricNetwork():
         
         particle.set_position(
             shapely.Point(
-                particle.get_x_position + particle.get_x_velocity,
-                particle.get_z_position + particle.get_z_velocity
+                particle.get_x_position() + particle.get_x_velocity(),
+                particle.get_z_position() + particle.get_z_velocity()
             )
         )
 
@@ -825,7 +825,7 @@ class SensoricNetwork():
         amount_max_possible = area.area * (self.mv_NodeAmount / self.mv_AreaPolygon.area)             
 
         # Calculating the fitness value
-        fitness_value = math.abs(amount_contained - amount_max_possible)
+        fitness_value = math.fabs(amount_contained - amount_max_possible)
 
         # Returning the calculated value
         return fitness_value
@@ -840,9 +840,16 @@ class SensoricNetwork():
         # Assuming that alpha = 0.9
         alpha = 0.9
 
+        # IoU value
+        iou = self.IoU(particle, particles)
+
+        # Checking if calculating global Fitness is the right choice here
+        if iou == 0:
+            raise ValueError("IoU==0")
+
         # Returning the value
         return (alpha * (self.amount_of_nodes_in_area(area)/self.mv_NodeAmount) 
-        + (1 - alpha)/(self.IoU(area, particles)/self.mv_NodeAmount))
+        + (1 - alpha)/(iou/self.mv_NodeAmount))
 
     def Weight(self, node):
 
@@ -859,7 +866,7 @@ class SensoricNetwork():
         for n in self.ml_Nodes:
             
             if id(node)!=id(n):
-                if shapely.intersects_xy(area, n.get_locatlization()):
+                if shapely.intersects(area, n.get_localization()):
                     nodes_in_range.append(n)
 
         # Calculating minimum distance from the CH candidates to the BN
@@ -871,12 +878,12 @@ class SensoricNetwork():
             if temp < minimum_distance:
                 minimum_distance = temp
                 
-
         weight = (weight_1 * (node.get_battery_level() * 100) + 
             weight_2 * (nodes_in_range/self.mv_NodeAmount) +
             weight_3 * (minimum_distance/shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization())))
 
-
+        print(weight)
+        return weight
 
 
     # The PSO algorithm that implements the Fitness functions etc.
@@ -890,10 +897,10 @@ class SensoricNetwork():
 
         # Initialising the particles with Nodes positions
         for node in self.ml_Nodes:
-            particles.append(Particle(position=node.get_localization(), velocity=0.0, linked_to=node))
+            particles.append(Particle(position=node.get_localization(), velocity=10, linked_to=node))
 
         # Calculating the max distance from the base node
-        dis_max = max([node.get_localization().distance(self.mv_BaseStation) for node in self.ml_Nodes])
+        dis_max = max([shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization()) for node in self.ml_Nodes])
 
         # The maximum radius of the cluster
         radius_max = self.mv_BaseStation.get_amplifier_threshold_distance()/2
@@ -904,7 +911,7 @@ class SensoricNetwork():
         # Initialising the radius inside the particle
         for particle in particles:
             # Calculating the distance from the particle to the base node
-            dis = particle.get_position().distance(self.mv_BaseStation.get_localization())
+            dis = shapely.distance(particle.get_position(), self.mv_BaseStation.get_localization())
 
             # Calculating and setting the particle radius
             particle.set_radius((dis/dis_max * (radius_max - radius_min) + radius_min))
@@ -936,25 +943,39 @@ class SensoricNetwork():
                 self.update_position(particle=particles[j])
 
                 # Calculating the distance from the particle to the base node
-                dis = particles[j].get_position().distance(self.mv_BaseStation.get_localization())
+                dis = shapely.distance(particles[j].get_position(), self.mv_BaseStation.get_localization())
 
                 # Calculating and setting the particle radius
                 particles[j].set_radius((dis/dis_max * (radius_max - radius_min) + radius_min))
 
                 # Calculating fitness values
                 fitness_particle = self.fitness(particles[j])
-                fitness_population = self.Fitness(particles[j], particles)
+
+                # If the particle doesn't have any neighbours it is automatically added to the best particles list
+                # But its fitness cannot be added as the value is incorrect
+                try:
+                    fitness_population = self.Fitness(particles[j], particles)
+                except ValueError as err:
+                    if fitness_particle < self.fitness(particles[j].get_pbest()):
+                        particles[j].set_pbest(particles[j])
+                    
+                    gbest_values.append(particles[j])
+                    continue
 
                 # Conditionals
                 if fitness_particle < self.fitness(particles[j].get_pbest()):
                     particles[j].set_pbest(particles[j])
+                try:
+                    if fitness_population < self.Fitness(gbest, particles):
+                        gbest = particles[j]
+                        gbest_values.append(gbest)
 
-                if fitness_population < self.Fitness(gbest):
-                    gbest = particles[j]
-                    gbest_values.append(gbest)
+                        for particle in particles:
+                            particle.set_gbest(gbest)
+                except ValueError as err:
+                    continue
 
-                    for particle in particles:
-                        particle.set_gbest(gbest)
+            print(particles[0].get_position())
         
         ch_nodes_candidates = []
 
@@ -978,7 +999,7 @@ class SensoricNetwork():
             # Checking for nodes that are in the candidate area
             for node in self.ml_Nodes:
 
-                if shapely.contains_xy(area, node.get_localization()):
+                if shapely.contains(area, node.get_localization()):
                     nodes_to_check.append(node)
 
             ch = (None, -1)
@@ -986,58 +1007,15 @@ class SensoricNetwork():
             # Checking the weights of the nodes
             for node in nodes_to_check:
                 
-                temp = (node, self.Weight(node))
+                temp = self.Weight(node)
 
-                if temp[1] > ch[1]:
-                    ch = temp
+                if temp > ch[1]:
+                    ch = (node, temp)
             
             ch_nodes.append(ch)
 
-
-        # To this point everything seems fine
-        
-
-        #
-
-        # Particles list
-        particles = []
-
-        # Initialising the particles
-        for node in self.ml_Nodes:
-            particles.append(Particle(node.get_localization(),0.0, node))
-
-        # A list that contains the distances between a node and a basenode
-        distance_from_bn = [node.get_localization().distance(self.mv_BaseStation.get_localization()) for node in self.ml_Nodes]
-
-        # Finding the maximum distance between possible CH and BN
-        dis_max = max(distance_from_bn)
-
-        # Calculating the optimal amount of circular clasters for this network, keeping in mind that H = 1
-        C = self.calculate_optimal_clasters_amount(radius_start=radius_min, radius_max=radius_max
-        , area=self.mv_AreaPolygon.area, dist_max=dis_max, h_value=1)
-
-        # The list of optimal radius values per particle(node)
-        particle_radius = [(dis/dis_max * (radius_max - radius_min) + radius_min) for dis in distance_from_bn]
-
-        personal_best = []
-
-        # Calculating the optimal circular area for each CH candidate
-        for i in range(len(self.ml_Nodes)):
-            personal_best.append(self.fitness(self.particles[i], particle_radius[i]))
-
-        global_best = personal_best.copy()
-
-        for i in range(2500):
-            for j in range(len(particles)):
-                
-
-
-        ######################
-        # Steady-state phase #
-        ######################
-
-
-
+        for node in ch_nodes:
+            print(id(node[1]))
         ######################
 
     
@@ -1054,7 +1032,7 @@ class SensoricNetwork():
 
         # Adding the base station to the list
         self.ml_xAxisPlotData.append(self.mv_BaseStation.get_localization().coords[:][0][0])
-        self.ml_yAxisPlotData.append(self.mv_BaseStation.coords[:][0][1])
+        self.ml_yAxisPlotData.append(self.mv_BaseStation.get_localization().coords[:][0][1])
         self.ml_ColorPlotData.append(self.mv_BaseStation.mv_Color)
     
 

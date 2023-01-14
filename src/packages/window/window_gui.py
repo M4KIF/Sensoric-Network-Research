@@ -355,7 +355,7 @@ class Window(QMainWindow):
         try:
             self.naive_average.setText(str(self.backend.mo_DataCollector.calculate_mean_from_naive_times()))
         except Exception as e:
-            print(e[0])
+            print(e)
         
 
 

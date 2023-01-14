@@ -54,7 +54,10 @@ class wsnSimulator():
             self.mo_DataCollector.end_timer()
             self.mo_DataCollector.save_result_as_naive()
         else:
-            print("Jeszcze nie")
+            self.mo_DataCollector.start_timer()
+            self.m_Network.pso_algorithm()
+            self.mo_DataCollector.end_timer()
+            self.mo_DataCollector.save_result_as_optimised()
         
         self.m_Network.cleanup_after_simulation()
         return True
