@@ -35,20 +35,20 @@ class EMU(Battery):
     # Objects and variables #
     #########################
 
-    #0.0000005
+    # Energy consumed per node sensor activation
     mv_SensingPowerConsumption = 0.0000005
 
     # Energy consumed per bit in Joules
-    #0.00000005
     mv_AntennaPowerConsumption = 0.00000005
 
     # Energy consumed in Joules per bit per meter squared
-    #0.00000000001
     mv_AmplifierLowPowerConsumption = 0.00000000001
 
     # Energy consumed in Joules per bit per meter quadrupled
-    #0.0000000000000013
     mv_AmplifierHighPowerConsumption = 0.0000000000000013
+
+    # Amplifier power mode switch threshold value[m]
+    mv_AmplifierThreshold = None
 
     #######################
     # Methods definitions #
@@ -61,10 +61,33 @@ class EMU(Battery):
         # Initialising the battery class from which the EMU inherits
         super().__init__(capacity_j)
 
+        # Calculating the amplifier threshold value
+        self.mv_AmplifierThreshold = sqrt((self.mv_AmplifierLowPowerConsumption/self.mv_AmplifierHighPowerConsumption))
+
 
     ##############################
     # Member methods definitions #
     ##############################
+
+
+    # Sets the sensing power consumption value
+    def set_sensing_consumption(self, value=float):
+        self.mv_SensingPowerConsumption = value
+
+
+    # Sets the antenna power consumption value
+    def set_antenna_consumption(self, value=float):
+        self.mv_AntennaPowerConsumption = value
+
+
+    # Sets the low power amplifier mode consumption value
+    def set_low_power_amplifier_consumption(self, value=float):
+        self.mv_AmplifierLowPowerConsumption = value
+
+
+    # Sets the high power amplifier mode consumption value
+    def set_high_power_amplifier_consumption(self, value=float):
+        self.mv_AmplifierHighPowerConsumption = value
 
 
     # Returns the value of sensing power consumption
@@ -72,15 +95,35 @@ class EMU(Battery):
         return self.mv_SensingPowerConsumption
 
 
+    # Gets the antenna power consumption value
+    def get_antenna_consumption(self):
+        return self.mv_AntennaPowerConsumption
+
+
+    # Gets the low power amplifier mode consumption value
+    def get_low_power_amplifier_consumption(self):
+        return self.mv_AmplifierLowPowerConsumption
+
+
+    # Gets the high power amplifier mode consumption value
+    def get_high_power_amplifier_consumption(self):
+        return self.mv_AmplifierHighPowerConsumption
+
+
+    # Gets the threshold distance after which the amplifier goes into high power
+    def get_threshold_distance(self):
+        return self.mv_AmplifierThreshold
+
+
     # Calculates the transmission energy depending on the packet size and distance traveled
     def calculate_transmission_consumption(self, packet_size=int, distance=int):
 
         # If the distance is smaller than 15 meters, then the amplifier goes into high power mode
-        if distance < 15:
+        if distance < self.mv_AmplifierThreshold:
 
             # Returns a value calculated for the low power state
             return (packet_size*self.mv_AntennaPowerConsumption 
-            + packet_size*self.mv_AmplifierLowPowerConsumption*sqrt(distance))
+            + packet_size*self.mv_AmplifierLowPowerConsumption*pow(distance, 2))
 
         else:
 

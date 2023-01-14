@@ -66,6 +66,28 @@ class SOC():
         return self.mo_EnergyManagement.get_charge_percentage_left()
 
 
+    # Takes all of the energy usage values from the EMU and packs them into a list
+    def get_energy_usage_values(self):
+
+        # Empty list for the values that will be taken from EMU
+        values = []
+
+        # Filling in the values
+        values.append(self.mo_EnergyManagement.get_sensing_consumption())
+        values.append(self.mo_EnergyManagement.get_antenna_consumption())
+        values.append(self.mo_EnergyManagement.get_low_power_amplifier_consumption())
+        values.append(self.mo_EnergyManagement.get_high_power_amplifier_consumption())
+
+        # Returning the values
+        return values
+
+
+    # Gets the distance after which amplifier switches to a high power mode
+    def get_amplifier_threshold_distance(self):
+        return self.mo_EnergyManagement.get_threshold_distance()
+
+
+
     # Emulates the sending of the status message into the network
     def send_status(self, distance=int):
         self.mo_EnergyManagement.subtract_energy(

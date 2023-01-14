@@ -18,8 +18,10 @@
 # For enabling the network functions
 from .. import wsn_nodes as components
 from numpy.random import uniform
+import math
 import random
 import shapely
+
 
 
 #####################
@@ -27,6 +29,87 @@ import shapely
 #####################
 
 
+# Particle class for the PSO algorithm
+class Particle():
+
+
+    # Constructor with a few parameters that enable quick initialisation of the particle
+    def __init__(self, position=shapely.Point(0,0), velocity=float(0.0), linked_to=None):
+
+        # Setting the postion a initial value, defaults to (0,0)
+        self.mv_Position = position
+
+        # Setting the velocity an initial value, defaults to 0
+        self.mv_Velocity = velocity
+
+        #  the refference to the node that the particle is linked with
+        self.mv_LinkedTo = linked_to
+
+        # Setting the pBest initial value of None
+        self.mv_pBest = None
+
+        # Setting the personal fitness value to 0
+        self.mv_pFitness = 0
+
+        # Setting the global fitness value to 0
+        self.mv_gFitness = 0
+
+    
+    #############################
+    # Member methods definition #
+    #############################
+
+
+    # Sets the current particle positon after updating the value in the algorithm
+    def set_position(self, position):
+        self.mv_Position = position
+
+    
+    # Sets the current particle velocity after updating the value in the algorithm
+    def set_velocity(self, velocity):
+        self.mv_Velocity = velocity
+
+
+    # Sets the best particle positon after deciding in the algorithm
+    def set_pbest(self, best_positon):
+        self.mv_pBest = best_positon
+
+
+    # Sets the personal fitness value
+    def set_pfitness(self, fitness):
+        self.mv_pFitness = fitness
+
+
+    # Sets the global fitness value
+    def set_gfitness(self, fitness):
+        self.mv_gFitness = fitness
+
+    
+    # Gets the position
+    def get_position(self):
+        return self.mv_Position
+
+
+    # Gets the velocity
+    def get_velocity(self):
+        return self.mv_Velocity
+
+
+    # Gets the pBest
+    def get_pbest(self):
+        return self.mv_pBest
+
+
+    # Gets the personal fitness value
+    def get_pfitness(self):
+        return self.mv_pFitness
+
+
+    # Gets the global fitness value
+        return self.mv_gFitness
+
+
+# The main sensoric network object with all of the network's funcitonality
 class SensoricNetwork():
 
 
@@ -40,9 +123,9 @@ class SensoricNetwork():
     def __init__(self, node_amount=int(10), battery_capacity=int(50), height=int(1000), width=int(1000),
     minimum_coverage=int(70)):
 
-        ###########
+        ###############################
         # Approaches choice variables #
-        ###########
+        ###############################
 
         # List containing the names of the implemented approaches to improving the lifetime of a WSN
         self.ml_Algorithms = ["naive", "Particle-Swarm-Optimisation"]
@@ -300,7 +383,8 @@ class SensoricNetwork():
         self.mv_AreaPolygon.point_on_surface().coords[:][0][1])
         self.mv_BaseStation.activate_base_station_flag()
 
-        self.ml_Nodes.append(self.mv_BaseStation)
+        # Not neccesary
+        #self.ml_Nodes.append(self.mv_BaseStation)
 
         self.calculate_plot_data()
 
@@ -546,10 +630,9 @@ class SensoricNetwork():
         #####################################
 
         for node in self.ml_Nodes:
-            if not node.is_base_station():
-                node.set_base_station(self.mv_BaseStation)
-                node.activate()
-                self.mv_ActiveNodes+=1
+            node.set_base_station(self.mv_BaseStation)
+            node.activate()
+            self.mv_ActiveNodes+=1
 
         # Sending hello message to the base station
         for node in self.ml_Nodes:
@@ -576,10 +659,197 @@ class SensoricNetwork():
     # Here is the biggest thing of this program #
     #############################################
 
+    
+    def calculate_optimal_clasters_amount(self, radius_start, radius_max, area, dist_max, h_value):
+        a = area
+        R = radius_start
+        d_m = dist_max
+        r = 0
+        c = 0
+
+        while a > 0:
+            a-=math.pi*(math.pow((2*R+r), 2) - pow(r, 2))
+            c+=(math.pi*pow((2*R+ r),2)-math.pi*pow(r, 2))/math.pi*pow(R, 2)
+            r+=2*R
+            R = (r*(radius_max-radius_start)+radius_start*dist_max)/(dist_max-radius_max+radius_start)
+
+        c*=h_value
+
+        return c
+
+
+    # Calculate nodes contained inside the CH candidate circle area
+    def amount_of_nodes_intersecting(self, particle, radius):
+
+        # The polygon which I will check
+        area = particle.linked_to.get_localization().buffer(radius)
+
+        # The amount of particles contained
+        amount_contained = 0
+
+        # Calculating the number of nodes that are contained withing the area of the CH candidate
+        for node in self.ml_Nodes:
+            if area.intersects(node.get_localization()):
+                amount_contained+=1
+
+        return amount_contained
+
+
+    # Calculates the amount of nodes that intersect and compares over universal set(total nodes amount)
+    def check_circle_area_intersections(self, particle, radius, particle_radius_list):
+
+        # The polygon that I will check for nodes in intersection between a second circle
+        area = particle.linked_to.get_localization().buffer(radius)
+        particles_in_intersection = set()
+        i = 0
+
+        for node in self.ml_Nodes:
+
+            temp = node.buffer(particle_radius_list[i])
+
+            if shapely.intersects(area, temp):
+                inter = shapely.intersection(area, temp)
+                
+                for comp_node in self.ml_Nodes:
+                    if shapely.intersects_xy(inter, comp_node.get_localization()):
+                        particles_in_intersection+=id(comp_node)
+
+
+            i+=1
+
+        # Returning the value
+        return len(particles_in_intersection)
+
+
+    def velocity(self):
+        print()
+
+
+
+    def position(self):
+        print()
+
+
+
+    # Calculates the fitness parameter without IoT
+    def fitness(self, particle, radius):
+
+        # The area which I will check
+        area = particle.linked_to.get_localization().buffer(radius)
+
+        # The amount of particles contained
+        amount_contained = self.amount_of_nodes_intersecting(particle, radius)
+
+        # Calculating the ideal amount of particles possible for this network
+        amount_max_possible = area.area * (self.mv_NodeAmount / self.mv_AreaPolygon.area)             
+
+        # Calculating the fitness value
+        fitness_value = math.abs(amount_contained - amount_max_possible)
+
+        # Returning the calculated value
+        return fitness_value
+
+
+    # Calculates the fitness parameter with IoT
+    def Fitness(self, particle, radius):
+        
+        # Assuming that alpha = 0.9
+        alpha = 0.9
+
+        # Returning the value
+        return (alpha * (self.amount_of_nodes_intersecting(particle, radius)/self.mv_NodeAmount) 
+        + (1 - alpha)/(self.check_circle_area_intersections(particle, radius)/self.mv_NodeAmount))
+
+    def Weight(self, particle, radius):
+
+        #
+        weight_1 = 0.8
+        weight_2 = 0.05
+        weight_3 = 0.15
+
+        # Calculating nodes in communication range
+        area = particle.linked_to.get_localization().buffer(particle.linked_to.get_communication_range())
+
+        nodes_in_range = 0
+
+        for node in self.ml_Nodes:
+            
+            if shapely.intersects_xy(area, node.get_locatlization()):
+                nodes_in_range+=1
+
+        # Calculating minimum distance from the CH candidates in the circle area
+        area = particle.linked_to.get_localization().buffer(radius)
+
+        minimum_distance = 100000
+
+        for node in self.ml_Nodes:
+            if shapely.intersects_xy(area, node.get_localization()):
+                temp = shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization())
+
+                if temp < minimum_distance:
+                    minimum_distance=temp
+                
+
+        weight = (weight_1 * (particle.get_battery_level() * 100) + 
+            weight_2 * (nodes_in_range/self.mv_NodeAmount) +
+            weight_3 * (minimum_distance/shapely.distance(particle.get_localization(), self.mv_BaseStation.get_localization())))
+
+
+
+
     # The PSO algorithm that implements the Fitness functions etc.
     def pso_algorithm(self):
 
-        print()
+        ###############
+        # Setup phase #
+        ###############
+
+        # Particles list
+        particles = []
+
+        # Initialising the particles
+        for node in self.ml_Nodes:
+            particles.append(Particle(node.get_localization(),0.0, node))
+
+        # The maximum radius of the cluster
+        radius_max = self.mv_BaseStation.get_amplifier_threshold_distance()/2
+
+        # The minimum radius of the cluster
+        radius_min = math.sqrt(self.mv_AreaPolygon.area/math.pi*self.mv_NodeAmount)
+
+        # A list that contains the distances between a node and a basenode
+        distance_from_bn = [node.get_localization().distance(self.mv_BaseStation) for node in self.ml_Nodes]
+
+        # Finding the maximum distance between possible CH and BN
+        dis_max = max(distance_from_bn)
+
+        # Calculating the optimal amount of circular clasters for this network, keeping in mind that H = 1
+        C = self.calculate_optimal_clasters_amount(radius_start=radius_min, radius_max=radius_max
+        , area=self.mv_AreaPolygon.area, dist_max=dis_max, h_value=1)
+
+        # The list of optimal radius values per particle(node)
+        particle_radius = [(dis/dis_max * (radius_max - radius_min) + radius_min) for dis in distance_from_bn]
+
+        personal_best = []
+
+        # Calculating the optimal circular area for each CH candidate
+        for i in range(len(self.ml_Nodes)):
+            personal_best.append(self.fitness(self.particles[i], particle_radius[i]))
+
+        global_best = personal_best.copy()
+
+        for i in range(2500):
+            for j in range(len(particles)):
+                
+
+
+        ######################
+        # Steady-state phase #
+        ######################
+
+
+
+        ######################
 
     
     def calculate_plot_data(self):
@@ -592,6 +862,11 @@ class SensoricNetwork():
             self.ml_xAxisPlotData.append(node.get_localization().coords[:][0][0])
             self.ml_yAxisPlotData.append(node.get_localization().coords[:][0][1])
             self.ml_ColorPlotData.append(node.mv_Color)
+
+        # Adding the base station to the list
+        self.ml_xAxisPlotData.append(self.mv_BaseStation.get_localization().coords[:][0][0])
+        self.ml_yAxisPlotData.append(self.mv_BaseStation.coords[:][0][1])
+        self.ml_ColorPlotData.append(self.mv_BaseStation.mv_Color)
     
 
     def get_plot_data(self):

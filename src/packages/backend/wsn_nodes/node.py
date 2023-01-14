@@ -61,10 +61,13 @@ class Node():
         self.mv_Location = shapely.Point(x, y)
 
         # Contains the sensing range of a node in meters, defaults to 2 meters
-        self.mv_SensingRange = 10
+        self.mv_SensingRange = 5
 
         # Contains the area that the node can access
         self.mv_SensingArea = self.mv_Location.buffer(self.mv_SensingRange)
+
+        # Contains the communication range value
+        self.mv_CommunicationRange = 15
 
         ###########################
         # Other nodes information #
@@ -187,6 +190,11 @@ class Node():
         self.mo_SOC.set_battery_capacity(capacity)
 
 
+    # Sets the node colour
+    def set_colour(self, colour):
+        self.mv_Color = colour
+
+
     # Localizes the node in the environment, a simulation of an gps module
     def set_localization(self, x=int, y=int):
         
@@ -194,6 +202,21 @@ class Node():
         self.mv_Location = shapely.Point(x, y)
 
         self.mv_SensingArea = self.mv_Location.buffer(self.mv_SensingRange)
+
+
+    # Gets the energy usage values from the energy management module of the node
+    def get_energy_usage_values(self):
+        return self.mo_SOC.get_energy_usage_values()
+
+
+    # Gets the amplifier power mode distance threshold
+    def get_amplifier_threshold_distance(self):
+        return self.mo_SOC.get_amplifier_threshold_distance()
+
+    
+    # Gets the communication range of the node
+    def get_communication_range(self):
+        return self.mv_CommunicationRange
 
 
     #
