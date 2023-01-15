@@ -85,6 +85,9 @@ class Node():
         # Base station
         self.mv_BaseStation = None
 
+        # Sink node
+        self.mv_SinkNode = None
+
         # Basic path to sink node
         self.ml_Path = list()
 
@@ -105,6 +108,12 @@ class Node():
         ############
         # Booleans #
         ############
+
+        # Activated when the multi hop route to the base station has been estabilished
+        self.mb_PathEstabilished = False
+
+        # Activated if it needs multi hop communication
+        self.mb_MultiHop = False
 
         # Activated only if this node is a Base Node
         self.mb_BaseStation = False
@@ -142,6 +151,12 @@ class Node():
         self.ml_Path.clear()
         self.ml_SinkNodes.clear()
 
+    def clear_flags(self):
+        self.deactivate_base_station_flag()
+        self.deactivate_multihop_flag()
+        self.deactivate_path_estabilished_flag()
+        self.deactivate_sink_flag()
+
 
     #########################
     # Boolean flags methods #
@@ -156,6 +171,8 @@ class Node():
     # Deactivates the node status flag
     def deactivate(self):
         self.mb_Active = False
+
+        self.clear_flags()
 
 
     # Checks the node status flag
@@ -173,6 +190,34 @@ class Node():
 
     def is_base_station(self):
         return self.mb_BaseStation
+
+    def activate_sink_flag(self):
+        self.mb_Sink = True
+
+    def deactivate_sink_flag(self):
+        self.mb_Sink = False
+
+    def is_sink(self):
+        return self.mb_Sink
+
+    def activate_multihop_flag(self):
+        self.mb_MultiHop = True
+
+    def deactivate_multihop_flag(self):
+        self.mb_MultiHop = False
+
+
+    def is_multihop(self):
+        return self.mb_MultiHop
+
+    def activate_path_estabilished_flag(self):
+        self.mb_PathEstabilished = True
+
+    def deactivate_path_estabilished_flag(self):
+        self.mb_PathEstabilished = False
+
+    def is_path_estabilished(self):
+        return self.mb_PathEstabilished
 
 
     #
@@ -204,14 +249,33 @@ class Node():
         self.mv_SensingArea = self.mv_Location.buffer(self.mv_SensingRange)
 
 
-    # Gets the energy usage values from the energy management module of the node
-    def get_energy_usage_values(self):
-        return self.mo_SOC.get_energy_usage_values()
+    def calculate_sensing_consumption(self):
+        return self.mo_SOC.get_sensing_consumption()
+
+
+    def calculate_antenna_consumption(self):
+        return self.mo_SOC.get_antenna_consumption()
+
+    
+    def calculate_transmission_consumption(self, distance, packet_size):
+        return self.mo_SOC.calculate_transmission_consumption(distance=distance, packet_size=packet_size)
+
+
+    def calculate_receiver_consumtion(self, packet_size):
+        return self.mo_SOC.calculate_receiver_consumption(packet_size=packet_size)
 
 
     # Gets the amplifier power mode distance threshold
     def get_amplifier_threshold_distance(self):
         return self.mo_SOC.get_amplifier_threshold_distance()
+
+    
+    def get_data_packet_size(self):
+        return self.mo_SOC.get_data_packet_size()
+
+
+    def get_status_message_size(self):
+        return self.mo_SOC.get_status_message_size()
 
     
     # Gets the communication range of the node
@@ -231,7 +295,17 @@ class Node():
 
     # Adds a node which has to be visited in order to reach the Sink
     def add_to_path(self, node):
+        if id(node) == id(self.mv_BaseStation):
+            self.activate_path_estabilished_flag()
         self.ml_Path.append(node)
+
+
+    def get_path(self):
+        return self.ml_Path.copy()
+
+    def clear_path(self):
+        self.ml_Path.clear()
+        self.deactivate_path_estabilished_flag()
 
 
     # Adding a node to the neighbours list
@@ -326,8 +400,12 @@ class Node():
         self.mv_Color = 20
 
 
+    def aggregate_and_send_data(self, distance=float, amount_of_data_packets=int):
+        self.mo_SOC.aggregate_and_send_data(distance, amount_of_data_packets)
+
+
     # Transmits the data packet
-    def transmit_data(self, distance=int):
+    def transmit_data(self, distance=float):
 
         self.mv_Color = 50
 
@@ -337,11 +415,11 @@ class Node():
         self.mv_Color = 20
 
 
-    def transmit_status(self, distance=int):
+    def transmit_status(self, distance=float):
         self.mo_SOC.send_status(distance)
 
     
-    def aggregate_data(self, distance=int):
+    def aggregate_data(self, distance=float):
 
         self.mv_Color = 50
 

@@ -66,39 +66,62 @@ class SOC():
         return self.mo_EnergyManagement.get_charge_percentage_left()
 
 
-    # Takes all of the energy usage values from the EMU and packs them into a list
-    def get_energy_usage_values(self):
+    def get_sensing_consumption(self):
+        return self.mo_EnergyManagement.get_sensing_consumption()
 
-        # Empty list for the values that will be taken from EMU
-        values = []
 
-        # Filling in the values
-        values.append(self.mo_EnergyManagement.get_sensing_consumption())
-        values.append(self.mo_EnergyManagement.get_antenna_consumption())
-        values.append(self.mo_EnergyManagement.get_low_power_amplifier_consumption())
-        values.append(self.mo_EnergyManagement.get_high_power_amplifier_consumption())
+    def get_antenna_consumption(self):
+        return self.mo_EnergyManagement.get_antenna_consumption()
 
-        # Returning the values
-        return values
+    
+    def get_low_power_amplifier_consumption(self):
+        return self.mo_EnergyManagement.get_low_power_amplifier_consumption()
+
+
+    def get_high_power_amplifier_consumption(self):
+        return self.mo_EnergyManagement.get_high_power_amplifier_consumption()
 
 
     # Gets the distance after which amplifier switches to a high power mode
     def get_amplifier_threshold_distance(self):
         return self.mo_EnergyManagement.get_threshold_distance()
 
+    # Calculates the transmission energy depending on the packet size and distance traveled
+    def calculate_transmission_consumption(self, packet_size=int, distance=int):
+        return self.mo_EnergyManagement.calculate_transmission_consumption(packet_size=packet_size, distance=distance)
+
+
+    # Calculates the receiver consumption depending on the data size that has been received
+    def calculate_receiver_consumption(self, packet_size):
+        return self.mo_EnergyManagement.calculate_receiver_consumption(packet_size=packet_size)
+
+
+    # 
+    def get_data_packet_size(self):
+        return self.mv_DataPacketSize
+
+
+    def get_status_message_size(self):
+        return self.mv_StatusMessageSize
 
 
     # Emulates the sending of the status message into the network
-    def send_status(self, distance=int):
+    def send_status(self, distance=float):
         self.mo_EnergyManagement.subtract_energy(
             self.mo_EnergyManagement.calculate_transmission_consumption(self.mv_StatusMessageSize, distance)
         )
 
 
     # Emulates the sending of the data into the network
-    def send_data(self, distance=int):
+    def send_data(self, distance=float):
         self.mo_EnergyManagement.subtract_energy(
             self.mo_EnergyManagement.calculate_transmission_consumption(self.mv_DataPacketSize, distance)
+        )
+
+
+    def aggregate_and_send_data(self, distance=float, amount_of_data_packets=int):
+        self.mo_EnergyManagement.subtract_energy(
+            self.mo_EnergyManagement.calculate_transmission_consumption(amount_of_data_packets * self.mv_DataPacketSize, distance)
         )
 
 

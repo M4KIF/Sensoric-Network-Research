@@ -116,7 +116,7 @@ class EMU(Battery):
 
 
     # Calculates the transmission energy depending on the packet size and distance traveled
-    def calculate_transmission_consumption(self, packet_size=int, distance=int):
+    def calculate_transmission_consumption(self, packet_size=int, distance=float):
 
         # If the distance is smaller than 15 meters, then the amplifier goes into high power mode
         if distance < self.mv_AmplifierThreshold:
