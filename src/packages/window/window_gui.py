@@ -13,7 +13,7 @@
 
 
 # Elements for running the simulation
-from ..backend import wsn_simulator as simulator
+from ..backend import wsn as network
 
 # Qt backend
 from PyQt5.QtWidgets import *
@@ -92,6 +92,9 @@ class PlotCanvas(FigureCanvasQTAgg):
 # GUI class, implements the functionality from the backend 
 class Window(QMainWindow):
 
+    # Thread object for multithreading the backend
+    m_BackendThread = QThread()
+
     def __init__(self, *args, **kwargs):
 
         ###########################################
@@ -105,7 +108,9 @@ class Window(QMainWindow):
         self.m_AppName = "WSN-Research"
 
         # The backend, that the window will visualise
-        self.backend = simulator.wsnSimulator()
+        self.backend = network.SensoricNetwork(node_amount=50, battery_capacity=1, width=200, height=200)
+
+        self.backend.moveToThread(self.m_BackendThread)
 
         ######################################
         # Main Window layouts initialisation #
@@ -118,7 +123,6 @@ class Window(QMainWindow):
         self.plotLayout = QGridLayout()
         self.area_widget = PlotCanvas(self, width=8,height=7,dpi=120)
         self.area_widget.addSinglePlot()
-        self.draw_plot()
         self.plotLayout.addWidget(self.area_widget)
 
         # The settings panel layout
@@ -135,7 +139,7 @@ class Window(QMainWindow):
 
         # Defining the algorithm selection combobox and linking it to the function, which takes the index
         self.select_algorithm_combo = QComboBox()
-        self.select_algorithm_combo.addItems(self.backend.m_Network.ml_Algorithms)
+        self.backend.signal_get_algorithms_list.emit()
         self.select_algorithm_combo.setStatusTip("Sends the backend a message about which algorithm to use")
         self.select_algorithm_combo.activated.connect(self.set_algorithm)
 
@@ -152,19 +156,16 @@ class Window(QMainWindow):
         # Defining the height selection line edit
         self.select_height_box = QLineEdit()
         self.select_height_box.setStatusTip("Enables the edition of the area height parameter")
-        self.select_height_box.setText(str(self.backend.m_Network.mv_Height))
         self.select_height_box.textEdited.connect(self.set_height)
 
         # Defining the width selection line edit
         self.select_width_box = QLineEdit()
         self.select_width_box.setStatusTip("Enables the edition of the area width parameter")
-        self.select_width_box.setText(str(self.backend.m_Network.mv_Width))
         self.select_width_box.textEdited.connect(self.set_width)
 
         # Defining the area coverage line edit
         self.select_minimal_area_coverage_box = QLineEdit()
         self.select_minimal_area_coverage_box.setStatusTip("Enables the edition of the minimal area coverage parameter")
-        self.select_minimal_area_coverage_box.setText(str(self.backend.m_Network.mv_MinimumCoverage))
         self.select_minimal_area_coverage_box.textEdited.connect(self.set_minimal_coverage)
 
         # Adding the boxes to the layout
@@ -182,13 +183,11 @@ class Window(QMainWindow):
         # Defining the nodes amount line edit
         self.nodes_amount_box = QLineEdit()
         self.nodes_amount_box.setStatusTip("Enables the edition of the nodes amount in the networks")
-        self.nodes_amount_box.setText(str(self.backend.m_Network.mv_NodeAmount))
         self.nodes_amount_box.textEdited.connect(self.set_nodes_amount)
 
         # Defining the node's battery capacity line edit
         self.nodes_battery_capacity_box = QLineEdit()
         self.nodes_battery_capacity_box.setStatusTip("Enables the edition of the nodes battery capacity")
-        self.nodes_battery_capacity_box.setText(str(self.backend.m_Network.mv_BatteryCapacity))
         self.nodes_battery_capacity_box.textEdited.connect(self.set_nodes_battery_capacity)
 
         # Adding the node settings boxes to the layout
@@ -202,42 +201,54 @@ class Window(QMainWindow):
         # Runtime information
         self.runtime_info_layout = QFormLayout()
 
-        # Will display the current coverage
-        self.current_coverage_label = QLabel()
-        self.current_coverage_label.setText(self.backend.m_Network.mv_CurrentCoverage)
-
         # Displays the naive alg. times label
         self.naive_label = QLabel()
         self.naive_label.setText("Naive algorithm times:")
 
         # Displays the naive average run times
-        self.naive_average = QLabel()
-        self.naive_average.setText("0.0")
+        self.naive_fnd = QLabel()
+        self.naive_fnd.setText("0")
 
         # Displays the naive last run time
-        self.naive_last = QLabel()
-        self.naive_last.setText("0.0")
+        self.naive_hnd = QLabel()
+        self.naive_hnd.setText("0")
+
+        # Displays the naive last run time
+        self.naive_lnd = QLabel()
+        self.naive_lnd.setText("0")
 
         # Displays the optimised alg. times label
         self.optimised_label = QLabel()
         self.optimised_label.setText("Optimised algorithm times:")
 
         # Displays the optimised average run times
-        self.optimised_average = QLabel()
-        self.optimised_average.setText("0.0")
+        self.optimised_fnd = QLabel()
+        self.optimised_fnd.setText("0")
 
-        # Displays the optimised last run time
-        self.optimised_last = QLabel()
-        self.optimised_last.setText("0.0")
+        # Displays the optimised hnd
+        self.optimised_hnd = QLabel()
+        self.optimised_hnd.setText("0")
+
+        # Displays the optimised lnd
+        self.optimised_lnd = QLabel()
+        self.optimised_lnd.setText("0")
+
+        self.active_nodes_amount_label = QLabel()
+        self.active_nodes_amount_label.setText("Currently active nodes")
+
+        self.active_nodes = QLabel()
 
         # Adding the labels to the layout
         self.runtime_info_layout.addWidget(self.naive_label)
-        self.runtime_info_layout.addRow("Mean", self.naive_average)
-        self.runtime_info_layout.addRow("Last", self.naive_last)
+        self.runtime_info_layout.addRow("FND:", self.naive_fnd)
+        self.runtime_info_layout.addRow("HND:", self.naive_hnd)
+        self.runtime_info_layout.addRow("LND:", self.naive_lnd)
         self.runtime_info_layout.addWidget(self.optimised_label)
-        self.runtime_info_layout.addRow("Mean", self.optimised_average)
-        self.runtime_info_layout.addRow("Last", self.optimised_last)
-        self.runtime_info_layout.addRow("Current coverage:", self.current_coverage_label)
+        self.runtime_info_layout.addRow("FND:", self.optimised_fnd)
+        self.runtime_info_layout.addRow("HND:", self.optimised_hnd)
+        self.runtime_info_layout.addRow("LND:", self.optimised_lnd)
+        self.runtime_info_layout.addWidget(self.active_nodes_amount_label)
+        self.runtime_info_layout.addRow("Active Nodes:", self.active_nodes)
 
         #######################################################
         # Adding created layouts to the outer settings layout #
@@ -268,30 +279,63 @@ class Window(QMainWindow):
         self.main_widget = QWidget()
         self.main_widget.setLayout(self.mainLayout)
 
+        ######################
+        # Connecting Signals #
+        ######################
+
+        self.backend.signal_send_algorithms_list.connect(self.select_algorithm_combo.addItems)
+        self.backend.signal_send_height.connect(self.select_height_box.setText)
+        self.backend.signal_send_width.connect(self.select_width_box.setText)
+        self.backend.signal_send_minimum_coverage.connect(self.select_minimal_area_coverage_box.setText)
+        self.backend.signal_send_node_amount.connect(self.nodes_amount_box.setText)
+        self.backend.signal_send_node_battery_capacity.connect(self.nodes_battery_capacity_box.setText)
+
+        self.backend.signal_update_plot.connect(self.draw_plot)
+
+        self.backend.signal_send_fnd_naive.connect(self.naive_fnd.setText)
+        self.backend.signal_send_hnd_naive.connect(self.naive_hnd.setText)
+        self.backend.signal_send_lnd_naive.connect(self.naive_lnd.setText)
+        self.backend.signal_send_fnd_optimised.connect(self.optimised_fnd.setText)
+        self.backend.signal_send_hnd_optimised.connect(self.optimised_hnd.setText)
+        self.backend.signal_send_lnd_optimised.connect(self.optimised_lnd.setText)
+        self.backend.signal_send_active_nodes.connect(self.active_nodes.setText)
+
+        ####################################
+        # Emitting signals to get the data #
+        ####################################
+
+        self.backend.signal_get_algorithms_list.emit()
+        self.backend.signal_get_height.emit()
+        self.backend.signal_get_width.emit()
+        self.backend.signal_get_node_amount.emit()
+        self.backend.signal_get_node_battery_capacity.emit()
+        self.backend.signal_get_minimum_coverage_value.emit()
+        self.backend.signal_initiate_network.emit()
+        self.backend.signal_draw_plot.emit()
+
         # Setting as central
         self.setCentralWidget(self.main_widget)
 
         # Showing the layout on the screen
         self.show()
 
-
+        # Starting the thread
+        self.m_BackendThread.start()
 
 
 
     def set_algorithm(self, index=int):
-        self.backend.m_Network.set_algorithm(index)
+        self.backend.signal_set_algorithm.emit(index)
+        self.backend.set_algorithm(index)
 
 
     def set_height(self, height=str):
 
         if height != '':
             if int(height) > 0 and int(height) < 20000:
-
-                self.backend.m_Network.set_height(int(height))
-
-                self.select_height_box.setText(str(self.backend.m_Network.mv_Height))
-
-                self.draw_plot()
+                
+                self.backend.signal_set_height.emit(int(height))
+                self.backend.signal_get_height.emit()
 
 
     def set_width(self, width=str):
@@ -299,19 +343,17 @@ class Window(QMainWindow):
         if width!='':
             if int(width) > 0 and int(width) < 20000:
 
-                self.backend.m_Network.set_width(int(width))
-
-                self.select_width_box.setText(str(self.backend.m_Network.mv_Width))
-
-                self.draw_plot()
+                self.backend.signal_set_width.emit(int(width))
+                self.backend.signal_get_width.emit()
 
 
     def set_minimal_coverage(self, coverage=str):
 
         if(int(coverage) > 0 and int(coverage) <= 100):
-            self.backend.m_Network.set_minimum_coverage_value(int(coverage))
 
-            self.select_minimal_area_coverage_box.setText(str(self.backend.m_Network.mv_MinimumCoverage))
+            self.backend.signal_set_minimum_coverage_value.emit(int(coverage))
+            self.backend.signal_get_minimum_coverage_value.emit()
+
 
         else:
             print("Here I must show and error with OK button")
@@ -321,27 +363,21 @@ class Window(QMainWindow):
 
         if amount != '':
             if int(amount) > 0 and int(amount) < 2000:
-        
-                self.backend.m_Network.set_node_amount(int(amount))
 
-                self.nodes_amount_box.setText(str(self.backend.m_Network.mv_NodeAmount))
-
-                self.draw_plot()
+                self.backend.signal_set_node_amount.emit(int(amount))
+                self.backend.signal_get_node_amount.emit()
 
 
     def set_nodes_battery_capacity(self, capacity=str):
         
         if capacity != '':
             if int(capacity) > 0 and int(capacity) < 5000:
-                self.backend.m_Network.set_node_battery_capacity(int(capacity))
+                self.backend.signal_set_node_battery_capacity.emit(int(capacity))
+                self.backend.signal_get_node_battery_capacity.emit()
 
-                self.nodes_battery_capacity_box.setText(str(self.backend.m_Network.mv_BatteryCapacity))
 
-
-    def draw_plot(self):
+    def draw_plot(self, temp):
         self.area_widget.clearAxes()
-
-        temp = self.backend.m_Network.get_plot_data()
 
         self.area_widget.createAreaPlot(temp[0], temp[1], temp[2])
 
@@ -349,14 +385,9 @@ class Window(QMainWindow):
 
 
     def run_simulation(self):
-        self.draw_plot()
-        self.backend.run_simulation()
-        self.draw_plot()
-        self.naive_last.setText(str(self.backend.mo_DataCollector.mv_NaiveLastTime))
-        try:
-            self.naive_average.setText(str(self.backend.mo_DataCollector.calculate_mean_from_naive_times()))
-        except Exception as e:
-            print(e)
+        self.backend.signal_run_simulation.emit()
+        
+
         
 
 

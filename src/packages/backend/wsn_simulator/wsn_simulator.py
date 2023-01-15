@@ -24,7 +24,7 @@ from .. import wsn as network
 from .. import misc as data
 
 # For enabling the multithreading in the main App by using signals
-from PyQt5 import QtCore
+from PyQt5.QtCore import pyqtSignal, QObject, QMutex
 
 
 #####################
@@ -32,9 +32,11 @@ from PyQt5 import QtCore
 #####################
 
 
-class wsnSimulator():
+class wsnSimulator(QObject):
 
     def __init__(self):
+        super().__init__()
+
         self.m_Network = network.SensoricNetwork(node_amount=50, battery_capacity=1, width=100, height=100,)
 
         self.m_Network.initiate_network()
