@@ -1,4 +1,5 @@
 
+
 ############################################################
 # Basic WSN element: a node, that is essentialy            #
 # a small computer with sensors.It's job is to collect and #
@@ -7,17 +8,11 @@
 ############################################################
 
 
-# mo - member object
-# ml - member list
-# md - member dictionary
-# mt - member tuple
-# mv - member variable
-# mb - member boolean
-
 
 ############
 # Includes #
 ############
+
 
 # Geographical Points, areas and other usefull calculations
 import shapely
@@ -25,8 +20,7 @@ import shapely
 # The module containing energy consumption and calculation related components
 from ..node_components import SOC
 
-# Enables sleep time to pause "in_action" for a moment. 
-# Helps with displaying the data on the plot with the active node highlighted
+# Used mainly for the sleep
 import time
 
 
@@ -67,7 +61,7 @@ class Node():
         self.mv_SensingArea = self.mv_Location.buffer(self.mv_SensingRange)
 
         # Contains the communication range value
-        self.mv_CommunicationRange = 15
+        self.mv_CommunicationRange = 25
 
         ###########################
         # Other nodes information #
@@ -76,12 +70,6 @@ class Node():
         # Conatains the list of nodes that are within range
         self.ml_AdjacentNodes = []
 
-        # Contains the information about aggregating nodes
-        self.ml_AggregatingNodes = []
-
-        # Contains the information about sink nodes
-        self.ml_SinkNodes = []
-
         # Base station
         self.mv_BaseStation = None
 
@@ -89,14 +77,14 @@ class Node():
         self.mv_SinkNode = None
 
         # Basic path to sink node
-        self.ml_Path = list()
+        self.ml_Path = set()
 
         ###########################
         # Node settings variables #
         ###########################
 
         # The threshold at which node indicates low battery level warning
-        self.mv_BatteryLowThreshold = None
+        self.mv_BatteryLowThreshold = 2
 
         #################
         # Miscellaneous #
@@ -119,7 +107,7 @@ class Node():
         self.mb_BaseStation = False
 
         # Activated only if this node is a sink
-        self.mb_Sink = False
+        self.mb_ClusterHead = False
 
         # Activated only if this node is an aggregating node
         self.mb_Aggregating = False
@@ -133,9 +121,6 @@ class Node():
         #
         self.mb_Active = False
 
-        # The default "low battery" warning threshold
-        self.mv_BatteryLowThreshold = 20
-
 
     # Clears up after the node just to be sure
     def __del__(self):
@@ -147,16 +132,17 @@ class Node():
     def clear(self):
         # Cleaning the nodes stored in the other nodes list
         self.ml_AdjacentNodes.clear()
-        self.ml_AggregatingNodes.clear()
         self.ml_Path.clear()
-        self.ml_SinkNodes.clear()
 
     def clear_flags(self):
         self.deactivate_base_station_flag()
         self.deactivate_multihop_flag()
         self.deactivate_path_estabilished_flag()
-        self.deactivate_sink_flag()
+        self.deactivate_cluster_head_flag()
 
+    def clear_path(self):
+        self.ml_Path.clear()
+        self.deactivate_path_estabilished_flag()
 
     #########################
     # Boolean flags methods #
@@ -170,8 +156,10 @@ class Node():
     
     # Deactivates the node status flag
     def deactivate(self):
+        # Deactivates the main flag
         self.mb_Active = False
 
+        # Clears all of the flags
         self.clear_flags()
 
 
@@ -180,51 +168,84 @@ class Node():
         return self.mb_Active
 
 
+    # Activates the base station flag
     def activate_base_station_flag(self):
         self.mb_BaseStation = True
 
 
+    # Deactivates the base station flag
     def deactivate_base_station_flag(self):
         self.mb_BaseStation = False
 
 
+    # Returns the value of the base station flag
     def is_base_station(self):
         return self.mb_BaseStation
 
-    def activate_sink_flag(self):
-        self.mb_Sink = True
 
-    def deactivate_sink_flag(self):
-        self.mb_Sink = False
+    # Activates the cluster head flag
+    def activate_cluster_head_flag(self):
+        self.mb_ClusterHead = True
 
-    def is_sink(self):
-        return self.mb_Sink
 
+    # Deactivates the cluster head flag
+    def deactivate_cluster_head_flag(self):
+        self.mb_ClusterHead = False
+
+
+    # Returns the cluster head flag value
+    def is_cluster_head(self):
+        return self.mb_ClusterHead
+
+
+    # Activates the multihop flag
     def activate_multihop_flag(self):
         self.mb_MultiHop = True
 
+
+    # Deactivates the multihop flag
     def deactivate_multihop_flag(self):
         self.mb_MultiHop = False
 
 
+    # Returns the multihop flag value
     def is_multihop(self):
         return self.mb_MultiHop
 
+
+    # Activates the path estabilished flag when there is a path to sink/base estabilished
     def activate_path_estabilished_flag(self):
         self.mb_PathEstabilished = True
 
+
+    # Deactivates the path estabilished flag
     def deactivate_path_estabilished_flag(self):
         self.mb_PathEstabilished = False
 
+
+    # Returns the flag value
     def is_path_estabilished(self):
         return self.mb_PathEstabilished
 
 
-    #
-    # Setters
-    #
+    def activate_battery_low_flag(self):
+        self.mb_LowBattery = True
 
 
+    def deactivate_battery_low_flag(self):
+        self.mb_LowBattery = False
+
+
+    def is_battery_low(self):
+        return self.mb_LowBattery
+
+
+    #####################
+    # Setters / Getters #
+    #####################
+
+
+    # Sets the base station of the network
     def set_base_station(self, base_station):
         self.mv_BaseStation = base_station
 
@@ -249,31 +270,17 @@ class Node():
         self.mv_SensingArea = self.mv_Location.buffer(self.mv_SensingRange)
 
 
-    def calculate_sensing_consumption(self):
-        return self.mo_SOC.get_sensing_consumption()
-
-
-    def calculate_antenna_consumption(self):
-        return self.mo_SOC.get_antenna_consumption()
-
-    
-    def calculate_transmission_consumption(self, distance, packet_size):
-        return self.mo_SOC.calculate_transmission_consumption(distance=distance, packet_size=packet_size)
-
-
-    def calculate_receiver_consumtion(self, packet_size):
-        return self.mo_SOC.calculate_receiver_consumption(packet_size=packet_size)
-
-
     # Gets the amplifier power mode distance threshold
     def get_amplifier_threshold_distance(self):
         return self.mo_SOC.get_amplifier_threshold_distance()
 
     
+    # Gets a single data packet size
     def get_data_packet_size(self):
         return self.mo_SOC.get_data_packet_size()
 
-
+    
+    # Gets a single status message size
     def get_status_message_size(self):
         return self.mo_SOC.get_status_message_size()
 
@@ -283,73 +290,93 @@ class Node():
         return self.mv_CommunicationRange
 
 
-    #
-    #
-    #
+    # Gets a list with hops leading to the sink/base
+    def get_path(self):
+        temp = []
+        for hop in self.ml_Path:
+            temp.append(hop)
+        return temp
+
+
+    # Gets the Point with the localization
+    def get_localization(self):
+        
+        return self.mv_Location
+
+    
+    # Gets the sensing range of the node
+    def get_sensing_range(self):
+        return self.mv_SensingRange
+
+    
+    # Gets the area of range
+    def get_sensing_range_area(self):
+        return self.mv_SensingArea
+
+
+    # Gets the current battery level of this device 
+    def get_battery_level(self):
+        
+        # Getting the cell's current capacity
+        level = self.mo_SOC.get_charge_percentage_left()
+
+        # Activating the battery critical flag if bellow 2%
+        if level < 2:
+            self.activate_battery_low_flag()
+
+        return level
+
+    
+    # Gets the number of neighbours that this node has
+    def get_neighbours_amount(self):
+        return len(self.ml_AdjacentNodes)
+
+
+    #######################
+    # Calculating methods #
+    #######################
+
+
+    # Returns the sensing power consumption unit value
+    def calculate_sensing_consumption(self):
+        return self.mo_SOC.get_sensing_consumption()
+
+
+    # Returns the antenna power consumption unit value
+    def calculate_antenna_consumption(self):
+        return self.mo_SOC.get_antenna_consumption()
+
+    
+    # Returns the transmission consumption for given parameters
+    def calculate_transmission_consumption(self, distance, packet_size):
+        return self.mo_SOC.calculate_transmission_consumption(distance=distance, packet_size=packet_size)
+
+
+    # Returns the receiver consumption for given parameters
+    def calculate_receiver_consumtion(self, packet_size):
+        return self.mo_SOC.calculate_receiver_consumption(packet_size=packet_size)
+
+
+    #################
+    # Miscellaneous #
+    #################
 
 
     # Sets the id of a sink node
     def add_sink_node(self, sink=None):
-        self.ml_SinkNodes.append(sink)
+        self.ml_SinkNode = sink
 
 
     # Adds a node which has to be visited in order to reach the Sink
     def add_to_path(self, node):
         if id(node) == id(self.mv_BaseStation):
             self.activate_path_estabilished_flag()
-        self.ml_Path.append(node)
-
-
-    def get_path(self):
-        return self.ml_Path.copy()
-
-    def clear_path(self):
-        self.ml_Path.clear()
-        self.deactivate_path_estabilished_flag()
+        self.ml_Path.add(node)
 
 
     # Adding a node to the neighbours list
     def add_to_neighbours_list(self, node):
         self.ml_AdjacentNodes.append(node)
-
-
-    # Sends the battery low warning to all nodes that have been found
-    def activate_battery_low_flag(self):
-        self.mb_BatteryLow = True
-
-
-    def get_battery_low_flag(self):
-        return self.mb_BatteryLow
-
-
-    # Gets the dictionary with the localization
-    def get_localization(self):
-        
-        return self.mv_Location
-
-    
-    def get_range(self):
-        return self.mv_SensingRange
-
-
-    def get_range_area(self):
-        return self.mv_SensingArea
-
-
-    def get_battery_level(self):
-        
-        # Getting the cell's current capacity
-        level = self.mo_SOC.get_charge_percentage_left()
-
-        # Checking if it is above the threshold
-        if level <= self.mv_BatteryLowThreshold and not self.mb_LowBattery:
-            self.activate_battery_low_flag()
-
-        return level
-
-    
-    def get_neighbours_amount(self):
-        return len(self.ml_AdjacentNodes)
 
 
     # Calculates the distance to the given point in space, mainly in x and z axis
@@ -373,31 +400,24 @@ class Node():
     def add_neighbour(self, neighbour_id=int):
         
         self.ml_AdjacentNodes.append(neighbour_id)
+    
+
+    #####################
+    # Data transmission #
+    #####################
 
 
     # Simulates data collection
     def collect_data(self):
         
-        self.mv_Color = 50
-
         # Sends the signal to SOC to take care of data collection and energy management
         self.mo_SOC.sense_data()
-
-        time.sleep(0.05)
-        self.mv_Color = 20
 
 
     # Receives the data packet
     def receive_data(self):
 
-        self.mv_Color = 50
-
-        # Sends the signal to SOC that It has to receive the data wirelesly
-        # of course, energy management is obvious
         self.mo_SOC.receive_data()
-
-        time.sleep(0.05)
-        self.mv_Color = 20
 
 
     def aggregate_and_send_data(self, distance=float, amount_of_data_packets=int):
@@ -407,12 +427,8 @@ class Node():
     # Transmits the data packet
     def transmit_data(self, distance=float):
 
-        self.mv_Color = 50
-
         # Informs the SOC that It has to follow through the transmission procedures
         self.mo_SOC.send_data(distance)
-
-        self.mv_Color = 20
 
 
     def transmit_status(self, distance=float):
@@ -421,12 +437,8 @@ class Node():
     
     def aggregate_data(self, distance=float):
 
-        self.mv_Color = 50
-
         self.mo_SOC.aggregate_data(distance)
 
-        time.sleep(0.05)
-        self.mv_Color = 20
 
     
 

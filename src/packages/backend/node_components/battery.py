@@ -48,13 +48,11 @@ class Battery():
 
     # Designed battery charge getter
     def get_battery_designed_capacity(self):
-
         return self.mv_DesignedCapacity
 
 
     # Current battery charge getter
     def get_battery_current_capacity(self):
-
         return self.mv_CurrentCapacity
 
 

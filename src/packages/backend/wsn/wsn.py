@@ -228,6 +228,9 @@ class SensoricNetwork():
         self.ml_Clusters = []
 
         # 
+        self.ml_NodeToBaseNode = []
+
+        # 
         self.ml_ClusterHeads = set()
 
         #################
@@ -235,7 +238,7 @@ class SensoricNetwork():
         #################
 
         # Max iterations of the PSO algorithm, should be 2500
-        self.mv_MaxIteration = 2500
+        self.mv_MaxIteration = 50
 
         # Stores the "uptime" of the network
         self.mv_Lifetime = None
@@ -582,7 +585,7 @@ class SensoricNetwork():
 
         # Adding the closest neighbours to the node within 100m
         for node in self.ml_Nodes:
-            temp = node.get_range_area()
+            temp = node.get_sensing_range_area()
 
             for another_node in self.ml_Nodes:
                 if id(node) != id(another_node) or node != sink:
@@ -674,15 +677,12 @@ class SensoricNetwork():
 
             for node in self.ml_Nodes:
                 if node.is_active():
-                    node.transmit_data(int(shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization())))
+                    node.transmit_data(shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization()))
 
             for node in self.ml_Nodes:
-                if node.get_battery_level() < 5 and node.is_active():
+                if node.get_battery_level() < 2 and node.is_active():
                     node.deactivate()
                     self.mv_ActiveNodes-=1
-
-            if self.mv_ActiveNodes == 0:
-                break
 
         print(rounds)
             
@@ -703,7 +703,6 @@ class SensoricNetwork():
             c+=((math.pi*pow(((2 * R)+ r),2))-(math.pi*pow(r, 2)))/(math.pi*pow(R, 2))
             r+=2*R
             R = (r*(radius_max-radius_start)+radius_start*dist_max)/(dist_max-radius_max+radius_start)
-            print(a)
 
         c*=h_value
 
@@ -745,14 +744,11 @@ class SensoricNetwork():
 
                         for node in self.ml_Nodes:
 
-                            if shapely.contains(intersection, node.get_localization()):
+                            if shapely.intersects(intersection, node.get_localization()):
                                 particles_in_intersections.add(id(node))
 
         # Returning the value
-        if len(particles_in_intersections) == 0:
-            return 0.1/len(particles)
-        else:
-            return len(particles_in_intersections)/len(particles)
+        return len(particles_in_intersections)/len(particles)
 
 
     # Calculates and updates the x and z velocity of the particle
@@ -781,21 +777,21 @@ class SensoricNetwork():
         # Calculating the inertia value
         w = w_max - (w_max-w_min)/self.mv_MaxIteration * iteration
 
-        particle.set_x_velocity(
-            (
+        velocity_x = (
                 w * particle.get_x_velocity() +
                 c1 * r1 * (particle.get_pbest().get_position().coords[:][0][0] - particle.get_x_velocity()) +
                 c2 * r2 * (particle.get_gbest().get_position().coords[:][0][0] - particle.get_x_velocity())
             )
-        )
 
-        particle.set_z_velocity(
-            (
+        velocity_z = (
                 w * particle.get_z_velocity() +
                 c1 * r1 * (particle.get_pbest().get_position().coords[:][0][1] - particle.get_z_velocity()) +
                 c2 * r2 * (particle.get_gbest().get_position().coords[:][0][1] - particle.get_z_velocity())
             )
-        )
+
+        particle.set_x_velocity(velocity_x)
+
+        particle.set_z_velocity(velocity_z)
 
 
     # 
@@ -869,11 +865,12 @@ class SensoricNetwork():
 
         # Checking if calculating global Fitness is the right choice here
         if iou == 0:
-            raise ValueError("IoU==0")
-
-        # Returning the value
-        return (alpha * (self.amount_of_nodes_in_area(area)/self.mv_NodeAmount) 
-        + (1 - alpha)/(iou))
+            # Returning the value without the 
+            return (alpha * (self.amount_of_nodes_in_area(area)/self.mv_NodeAmount)+ (1 - alpha)/(0.0001/self.mv_NodeAmount))
+        else:
+            # Returning the value
+            return (alpha * (self.amount_of_nodes_in_area(area)/self.mv_NodeAmount) 
+            + (1 - alpha)/(iou))
 
     def Weight(self, node):
 
@@ -927,7 +924,7 @@ class SensoricNetwork():
             ((node.get_localization().coords[:][0][0]-self.mv_BaseStation.get_localization().coords[:][0][0])*
             candidate_node.get_localization().coords[:][0][1])+
             (self.mv_BaseStation.get_localization().coords[:][0][0] * node.get_localization().coords[:][0][1])-
-            (self.mv_BaseStation.get_localization().coord[:][0][1]*node.get_localization().coords[:][0][0]))/math.sqrt(
+            (self.mv_BaseStation.get_localization().coords[:][0][1]*node.get_localization().coords[:][0][0]))/math.sqrt(
                 pow((self.mv_BaseStation.get_localization().coords[:][0][1] - node.get_localization().coords[:][0][1]),2) +
                 pow((node.get_localization().coords[:][0][0] - self.mv_BaseStation.get_localization().coords[:][0][0]), 2)
             )
@@ -936,9 +933,8 @@ class SensoricNetwork():
 
         return u1*(dv/d0) + u2 * (dj/d0) + u3 * (100/Ej)
 
-    # The PSO algorithm that implements the Fitness functions etc.
-    def pso_algorithm(self):
 
+    def pso_setup(self):
         ###############
         # Setup phase #
         ###############
@@ -946,12 +942,15 @@ class SensoricNetwork():
         # Clearing the cluster head list and clusters list just in case
         self.ml_ClusterHeads.clear()
         self.ml_Clusters.clear()
+        self.mv_ActiveNodes = 0
+        for node in self.ml_Nodes:
+            node.deactivate()
 
         # Stores the iterations value
         total_iterations = 0
 
         # Calculating the max distance from the base node to a node
-        dis_max = max([shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization()) for node in self.ml_Nodes])
+        dis_max = max([shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization()) for node in self.ml_Nodes if node.get_battery_level() > 2])
 
         # Calculating the maximum radius of a cluster candidate area
         radius_max = self.mv_BaseStation.get_amplifier_threshold_distance()/2
@@ -964,8 +963,6 @@ class SensoricNetwork():
 
         # List of all particles
         particles = []
-
-        print(f"C = ", C)
 
         # Creating the particles with inital positions taken from node's positions
         for node in self.ml_Nodes:
@@ -1043,11 +1040,8 @@ class SensoricNetwork():
             # Discarding values that don't meet the criteria
             for particle in gbest_values:
             
-                # If the ratio of intersected nodes to all nodes is to high, discards the candidate
-                if self.IoU(particle, particles) > 0.75:
-                    continue
-                else:
-                    # Else adds the candidate to the list
+                # If the ratio of intersected nodes to all nodes is to0 high, discards the candidate
+                if self.IoU(particle, particles) < 0.70:
                     ch_area_candidates.append(particle)
 
             # Searching for the CH nodes in the CH candidate areas
@@ -1056,8 +1050,6 @@ class SensoricNetwork():
                 # Calculating the polygon of the candidate area
                 area = particle.get_position().buffer(particle.get_radius())
 
-                print(f"R is", particle.get_radius())
-
                 # List of from which there will be a CH choosen
                 nodes = []
 
@@ -1065,11 +1057,11 @@ class SensoricNetwork():
                 for node in self.ml_Nodes:
                 
                     # If the node is withing the area, it is added to the list
-                    if shapely.intersects(area, node.get_localization()):
+                    if shapely.contains(area, node.get_localization()):
                         nodes.append(node)
 
                 # Tuple that will help find the final CH node from the candidates found above
-                ch = (None, 0)
+                ch = (None, 100000)
 
                 # Comparing the weights of every individual nodes in the candidate's list
                 for node in nodes:
@@ -1078,7 +1070,7 @@ class SensoricNetwork():
                     temp = self.Weight(node)
 
                     # Checking if it is bigger than the other
-                    if temp > ch[1]:
+                    if temp < ch[1]:
                     
                         # If yes, the tuple takes this candidate's values
                         ch = (node, temp)
@@ -1087,10 +1079,10 @@ class SensoricNetwork():
                 if ch[0] != None:
                     self.ml_ClusterHeads.add(ch[0])
 
-            total_iterations+=1
-            print(len(self.ml_ClusterHeads))
             if len(self.ml_ClusterHeads) >= math.ceil(C):
                 break
+
+            total_iterations+=1
 
         ###############################
         # Assigning nodes to clusters #
@@ -1099,86 +1091,109 @@ class SensoricNetwork():
         # Adding the cluster heads to the clusters lists
         for ch in self.ml_ClusterHeads:
 
-            # Activating the boolean inside every CH for easy recognition
-            ch.activate()
-            self.mv_ActiveNodes+=1
-            ch.activate_sink_flag()
+            if ch.get_battery_level() > 2:
+                # Activating the boolean inside every CH for easy recognition
+                ch.activate()
+                self.mv_ActiveNodes+=1
+                ch.activate_cluster_head_flag()
 
-            self.ml_Clusters.append([ch])
+                self.ml_Clusters.append([ch])
+
+        # Checking which nodes are closer than d0 to the base station
+        for node in self.ml_Nodes:
+            if not node.is_active():
+            
+                if shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization()) < self.mv_BaseStation.get_amplifier_threshold_distance():
+                    self.ml_NodeToBaseNode.append(node)
+                    self.mv_ActiveNodes+=1
+                    node.activate()
 
         # Adding nodes to the clusters
         for node in self.ml_Nodes:
-            # Tuple made out of energy value and cluster index
-            temp = (100000, None)
+            if not node.is_active():
+                # Tuple made out of energy value and cluster index
+                temp = (100000, None)
             
-            for j in range(len(self.ml_Clusters)):
+                for j in range(len(self.ml_Clusters)):
 
-                # Calculating the distance between the node and the cluster head
-                if id(node) != id(self.ml_Clusters[j][0]):
-                    distance = shapely.distance(node.get_localization(), self.ml_Clusters[j][0].get_localization())
+                    # Calculating the distance between the node and the cluster head
+                    if id(node) != id(self.ml_Clusters[j][0]):
+                        distance = shapely.distance(node.get_localization(), self.ml_Clusters[j][0].get_localization())
 
-                    power_draw = self.mv_BaseStation.calculate_transmission_consumption(distance=distance, packet_size=self.mv_BaseStation.get_data_packet_size())
+                        power_draw = self.mv_BaseStation.calculate_transmission_consumption(distance=distance, packet_size=self.mv_BaseStation.get_data_packet_size())
 
-                    if temp[0] - power_draw > 0:
-                        updated = (power_draw, j)
-                        temp = updated
+                        if temp[0] - power_draw > 0:
+                            updated = (power_draw, j)
+                            temp = updated
 
-            if temp[1] != None and (not node.is_active()) and (not node.is_sink()):
-                node.activate()
-                self.mv_ActiveNodes+=1
-                self.ml_Clusters[temp[1]].append(node)
+                if temp[1] != None and (not node.is_active()) and (not node.is_cluster_head()):
+                    node.activate()
+                    self.mv_ActiveNodes+=1
+                    self.ml_Clusters[temp[1]].append(node)
+
+
+    # The PSO algorithm that implements the Fitness functions etc.
+    def pso_algorithm(self):
+
+        self.pso_setup()
 
         ################
         # Steady state #
         ################
 
         rounds = 0
-        print("Hej?")
+        print("Begining the pso simulation!")
 
         while self.calculate_coverage() > self.mv_MinimumCoverage:
-            print("Przyjebalo?")
-
-            paths_estabilished = 0
 
             # If there is any need - creating the multihop route for the cluster heads over other cluster heads
             for head in self.ml_ClusterHeads:
+
+                if head.is_active():
                 
-                head.clear_path()
+                    head.clear_path()
 
-                # Checking if a node needs multihop
-                if shapely.distance(head.get_localization(), self.mv_BaseStation.get_localization()) > self.mv_BaseStation.get_amplifier_threshold_distance():
-                    hops_left = self.ml_ClusterHeads.copy()
-                    hops_left.add(self.mv_BaseStation)
+                    # Checking if a node needs multihop
+                    if shapely.distance(head.get_localization(), self.mv_BaseStation.get_localization()) > self.mv_BaseStation.get_amplifier_threshold_distance():
+                        hops_left = []
 
-                    hops_left.discard(head)
+                        for ch in self.ml_ClusterHeads:
+                            hops_left.append(ch)
+                    
+                        hops_left.append(self.mv_BaseStation)
+                        hops_left.remove(head)
 
-                    while not head.is_path_estabilished():
-                        next_hop_tuple = (None, None)
+                        while not head.is_path_estabilished():
+                            next_hop_tuple = (None, None)
+                            for hop in hops_left:
+                                value = self.hop_weight(head, hop)
 
-                        for hop in hops_left:
-                            value = self.hop_weight(head, hop)
+                                # If the temporal tuple is empty
+                                if next_hop_tuple[1] == None:
+                                    temp = (hop, value)
+                                    next_hop_tuple = temp
 
-                            # If the temporal tuple is empty
-                            if next_hop_tuple[1] == None:
-                                temp = (hop, value)
-                                next_hop_tuple = temp
+                                if value < next_hop_tuple[1]:
+                                    temp = (hop, value)
+                                    next_hop_tuple = temp
+                        
+                            head.add_to_path(next_hop_tuple[0])
+                            if id(next_hop_tuple[0]) == id(self.mv_BaseStation):
+                                break
+                            hops_left.remove(next_hop_tuple[0])
 
-                            if value < next_hop_tuple[1]:
-                                temp = (hop, value)
-                                next_hop_tuple = temp
-                            
-                        head.add_to_path(hop)
+                        # Adding to the paths estabilished index
+                        head.activate_multihop_flag()
+                    else:
+                        head.add_to_path(self.mv_BaseStation)
 
-                        hops_left.discard(next_hop_tuple[0])
+            #############################
+            # Proceeding with the round #
+            #############################
 
-                    # Adding to the paths estabilished index
-                    paths_estabilished += 1
-                    head.activate_multihop_flag()
-                else:
-                    head.add_to_path(self.mv_BaseStation)
-                    paths_estabilished += 1
-
-            # Proceeding to the round
+            # The direct communicating nodes go first
+            for node in self.ml_NodeToBaseNode:
+                node.transmit_data(shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization()))
 
             # First, the clusters collect the data
             for i in range(len(self.ml_Clusters)):
@@ -1199,23 +1214,21 @@ class SensoricNetwork():
                     ch[0].aggregate_and_send_data(distance=shapely.distance(ch[0].get_localization(), path[0].get_localization()), amount_of_data_packets=len(ch))
 
                     # Then the data is sent through other hops
-                    for i in range(len(path)):
-                        if id(path[i])!=id(self.mv_BaseStation):
-                            path[i].aggregate_and_send_data()
+                    for i in range(len(path)-1):
+                        path[i].aggregate_and_send_data(distance=shapely.distance(ch[0].get_localization(), path[i+1].get_localization()), amount_of_data_packets=len(ch))
                 elif len(path) == 1:
                     # Pretending that I am sending data_packets from the ch to the first hop
                     ch[0].aggregate_and_send_data(distance=shapely.distance(ch[0].get_localization(), path[0].get_localization()), amount_of_data_packets=len(ch))
                 
-                for node in self.ml_Nodes:
+            for node in self.ml_Nodes:
                     
-                    if node.get_battery_level() < 1:
-                        node.deactivate()
+                if node.get_battery_level() < 1 and node.is_active():
+                    node.deactivate()
+                    self.mv_ActiveNodes-=1
 
             print(self.mv_ActiveNodes)
             rounds+=1
-
-        print(f"Chuj = ", rounds)
-
+            print(f"Chuj = ", rounds)
         ########################################
 
     
@@ -1243,10 +1256,7 @@ class SensoricNetwork():
 
     def cleanup_after_simulation(self):
         for node in self.ml_Nodes:
-            node.ml_AdjacentNodes.clear()
-            node.ml_AggregatingNodes.clear()
-            node.ml_SinkNodes.clear()
-            node.ml_Path.clear()
+            node.clear()
             node.set_battery_capacity(self.mv_BatteryCapacity)
             node.deactivate()
 

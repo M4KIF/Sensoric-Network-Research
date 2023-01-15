@@ -66,18 +66,22 @@ class SOC():
         return self.mo_EnergyManagement.get_charge_percentage_left()
 
 
+    # Gets the sensing power consumption
     def get_sensing_consumption(self):
         return self.mo_EnergyManagement.get_sensing_consumption()
 
 
+    # Gets the antenna power consumption
     def get_antenna_consumption(self):
         return self.mo_EnergyManagement.get_antenna_consumption()
 
     
+    # Gets the low power amplifier consumption
     def get_low_power_amplifier_consumption(self):
         return self.mo_EnergyManagement.get_low_power_amplifier_consumption()
 
 
+    # Gets the high power amplifier consumption
     def get_high_power_amplifier_consumption(self):
         return self.mo_EnergyManagement.get_high_power_amplifier_consumption()
 
@@ -96,11 +100,12 @@ class SOC():
         return self.mo_EnergyManagement.calculate_receiver_consumption(packet_size=packet_size)
 
 
-    # 
+    # Gets the data packet size
     def get_data_packet_size(self):
         return self.mv_DataPacketSize
 
 
+    # Gets the status message packet size
     def get_status_message_size(self):
         return self.mv_StatusMessageSize
 
