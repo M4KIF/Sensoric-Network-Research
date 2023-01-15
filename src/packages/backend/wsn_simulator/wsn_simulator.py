@@ -59,5 +59,4 @@ class wsnSimulator():
             self.mo_DataCollector.end_timer()
             self.mo_DataCollector.save_result_as_optimised()
         
-        self.m_Network.cleanup_after_simulation()
         return True

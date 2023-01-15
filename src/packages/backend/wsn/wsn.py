@@ -230,11 +230,12 @@ class SensoricNetwork(QObject):
 
     signal_send_plot_data = pyqtSignal(list)
 
+    signal_update_plot = pyqtSignal(list)
+
     # Other methods
     signal_run_pso_simulation = pyqtSignal()
 
     signal_run_naive_simulation = pyqtSignal()
-
 
 
     #######################
@@ -246,13 +247,50 @@ class SensoricNetwork(QObject):
     # battery capacity, lower left and upper right point of the area covered by sensors as params
     def __init__(self, node_amount=int(10), battery_capacity=int(50), height=int(1000), width=int(1000),
     minimum_coverage=int(70)):
-
+        super().__init__()
 
         #######################################
         # Connecting signals to the functions #
         #######################################
 
+        # Setters signals
+        self.signal_set_height.connect(self.set_height)
 
+        self.signal_set_width.connect(self.set_width)
+
+        self.signal_set_area_dimensions.connect(self.set_area_dimensions)
+
+        self.signal_set_node_amount.connect(self.set_node_amount)
+
+        self.signal_set_node_battery_capacity.connect(self.set_node_battery_capacity)
+
+        self.signal_set_minimum_coverage_value.connect(self.set_minimum_coverage_value)
+
+        self.signal_set_algorithm.connect(self.set_algorithm)
+
+        # Getter signals
+        self.signal_get_height.connect(self.get_height)
+
+        self.signal_get_width.connect(self.get_width)
+
+        self.signal_get_node_amount.connect(self.get_node_amount)
+
+        self.signal_get_node_battery_capacity.connect(self.get_node_battery_capacity)
+
+        self.signal_get_minimum_coverage_value.connect(self.get_minimum_coverage_value)
+
+        self.signal_get_current_algorithm.connect(self.get_current_algorithm)
+
+        self.signal_get_rounds.connect(self.get_rounds)
+
+        self.signal_get_algorithms_list.connect(self.get_algorithms_list)
+
+        self.signal_get_plot_data.connect(self.get_plot_data)
+
+        # Simulation signals
+        self.signal_run_pso_simulation.connect(self.pso_algorithm)
+
+        self.signal_run_naive_simulation.connect(self.naive_algorithm_new)
 
         ###############################
         # Approaches choice variables #
@@ -524,29 +562,35 @@ class SensoricNetwork(QObject):
 
     #
     def get_height(self):
+        self.signal_send_height.emit(self.mv_Height)
         return self.mv_Height
 
 
     #
     def get_width(self):
+        self.signal_send_width.emit(self.mv_Width)
         return self.mv_Width
 
 
     #
     def get_node_amount(self):
+        self.signal_send_node_amount.emit(self.mv_NodeAmount)
         return self.mv_NodeAmount
 
 
     #
     def get_node_battery_capacity(self):
+        self.signal_get_node_battery_capacity.emit(self.mv_BatteryCapacity)
         return self.mv_BatteryCapacity
 
 
     def get_minimum_coverage_value(self):
+        self.signal_send_minimum_coverage(self.mv_MinimumCoverage)
         return self.mv_MinimumCoverage
 
 
     def get_current_algorithm(self):
+        self.signal_send_current_algorithm(self.mv_CurrentAlgorithm)
         return self.mv_CurrentAlgorithm
 
 
@@ -555,16 +599,19 @@ class SensoricNetwork(QObject):
         # 0 - first node died
         # 1 - half nodes died
         # 2 - last node died
+        self.signal_send_rounds.emit([self.mv_FND, self.mv_HND, self.mv_LND])
         return [self.mv_FND, self.mv_HND, self.mv_LND]
 
 
     #
     def get_algorithms_list(self):
+        self.signal_send_algorithms_list.emit(self.ml_Algorithms)
         return self.ml_Algorithms
 
 
     #
     def get_plot_data(self):
+        self.signal_send_plot_data.emit([self.ml_xAxisPlotData, self.ml_yAxisPlotData, self.ml_ColorPlotData])
         return [self.ml_xAxisPlotData, self.ml_yAxisPlotData, self.ml_ColorPlotData]
 
 
@@ -594,6 +641,7 @@ class SensoricNetwork(QObject):
         # Setting the base station across the nodes
         for node in self.ml_Nodes:
             node.set_base_station(self.mv_BaseStation)
+            node.deactivate()
 
         # Activating the flag indicating that the network is ready for a simulation
         self.mb_Ready = True
@@ -773,6 +821,7 @@ class SensoricNetwork(QObject):
 
         print(self.mv_LND)
         self.mb_LastNodeDied = True
+        self.cleanup_after_simulation()
 
             
     ###############################################
@@ -1156,7 +1205,7 @@ class SensoricNetwork(QObject):
                 for node in self.ml_Nodes:
                 
                     # If the node is withing the area, it is added to the list
-                    if shapely.contains(area, node.get_localization()) and not node.is_battery_low() and not node.is_active():
+                    if shapely.contains(area, node.get_localization()):
                         nodes.append(node)
 
                 # Tuple that will help find the final CH node from the candidates found above
@@ -1164,7 +1213,6 @@ class SensoricNetwork(QObject):
 
                 # Comparing the weights of every individual nodes in the candidate's list
                 for node in nodes:
-                    if not node.is_battery_low() and not node.is_active():
                 
                         # Calculating and storing the weight value
                         temp = self.Weight(node)
@@ -1191,7 +1239,7 @@ class SensoricNetwork(QObject):
         # Adding the cluster heads to the clusters lists
         for ch in self.ml_ClusterHeads:
             
-            if not ch.is_battery_low() and not ch.is_active():
+            if not ch.is_active():
                 # Activating the boolean inside every CH for easy recognition
                 ch.activate()
                 self.mv_ActiveNodes+=1
@@ -1201,7 +1249,7 @@ class SensoricNetwork(QObject):
 
         # Checking which nodes are closer than d0 to the base station
         for node in self.ml_Nodes:
-            if not node.is_battery_low() and not node.is_active():
+            if not node.is_active():
             
                 if shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization()) < self.mv_BaseStation.get_amplifier_threshold_distance():
                     self.ml_NodeToBaseNode.append(node)
@@ -1210,7 +1258,7 @@ class SensoricNetwork(QObject):
 
         # Adding nodes to the clusters
         for node in self.ml_Nodes:
-            if not node.is_battery_low() and not node.is_active():
+            if not node.is_active():
                 # Tuple made out of energy value and cluster index
                 temp = (100000, None)
             
@@ -1231,6 +1279,8 @@ class SensoricNetwork(QObject):
                     self.mv_ActiveNodes+=1
                     self.ml_Clusters[temp[1]].append(node)
 
+                self.calculate_plot_data()
+
 
     # The setup + steady phase of pso
     def pso_algorithm(self):
@@ -1245,7 +1295,6 @@ class SensoricNetwork(QObject):
         ################
 
         self.mv_LND = 0
-        head_died = False
         print("Begining the pso simulation!")
 
         while self.calculate_coverage() > self.mv_MinimumCoverage:
@@ -1258,7 +1307,7 @@ class SensoricNetwork(QObject):
             # If there is any need - creating the multihop route for the cluster heads over other cluster heads
             for head in self.ml_ClusterHeads:
 
-                if not head.is_battery_low():
+                if head.is_active():
                 
                     head.clear_path()
 
@@ -1295,13 +1344,6 @@ class SensoricNetwork(QObject):
                         head.activate_multihop_flag()
                     else:
                         head.add_to_path(self.mv_BaseStation)
-                else:
-                    reshuffle = True
-
-            if(reshuffle):
-                self.pso_setup()
-                reshuffle = False
-                continue
 
             #############################
             # Proceeding with the round #
@@ -1319,21 +1361,6 @@ class SensoricNetwork(QObject):
 
                         if id(self.ml_Clusters[i][0]) != id(self.ml_Clusters[i][j]):
                             self.ml_Clusters[i][j].transmit_data(shapely.distance(self.ml_Clusters[i][0].get_localization(), self.ml_Clusters[i][j].get_localization()))
-                else:
-                    for k in range(len(self.ml_Clusters[i])):
-                        if self.ml_Clusters[i][k].is_active():
-                            self.ml_Clusters[i][k].deactivate()
-                            self.mv_ActiveNodes-=1
-
-                            # Checking for the algorithm statistics
-                            if self.mb_FirstNodeDied and self.mv_ActiveNodes == (self.mv_NodeAmount-1):
-                                self.mv_FND = self.mv_LND
-                                self.mb_FirstNodeDied = True
-                    
-                            if (self.mb_HalfNodesDies and
-                            (self.mv_ActiveNodes == self.mv_NodeAmount - int((self.mv_MinimumCoverage/100)*self.mv_NodeAmount))):
-                                self.mv_HND = self.mv_LND
-                                self.mb_HalfNodesDies = True
 
             # Then the clusters send the data to the base node via their calculated path
             for ch in self.ml_Clusters:
@@ -1354,8 +1381,9 @@ class SensoricNetwork(QObject):
                 
             for node in self.ml_Nodes:
                     
-                if node.get_battery_level() < 1 and not node.is_battery_low():
+                if node.get_battery_level() < 2:
                     node.activate_battery_low_flag()
+                    node.deactivate()
                     self.mv_ActiveNodes-=1
 
                     # Checking for the algorithm statistics
@@ -1369,11 +1397,13 @@ class SensoricNetwork(QObject):
                         self.mb_HalfNodesDies = True
 
             print(self.mv_ActiveNodes)
+            self.calculate_plot_data()
             self.mv_LND += 1
 
         ########################################
 
         self.mb_LastNodeDied = True
+        self.cleanup_after_simulation()
         print(self.mv_LND)
     
 
@@ -1402,6 +1432,8 @@ class SensoricNetwork(QObject):
             self.ml_yAxisPlotData.append(self.mv_BaseStation.get_localization().coords[:][0][1])
             self.ml_ColorPlotData.append(self.mv_BaseStation.mv_Color)
 
+            self.signal_update_plot.emit([self.ml_xAxisPlotData, self.ml_yAxisPlotData, self.ml_ColorPlotData])
+
 
     def cleanup_after_simulation(self):
 
@@ -1413,6 +1445,7 @@ class SensoricNetwork(QObject):
         # Clearing every node that has been used out of data
         for node in self.ml_Nodes:
             node.clear()
+            node.deactivate_battery_low_flag()
             node.set_battery_capacity(self.mv_BatteryCapacity)
             node.deactivate()
 
