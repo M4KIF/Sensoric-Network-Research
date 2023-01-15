@@ -1,4 +1,6 @@
 
+
+
 ###################################
 # Window GUI and application loop #
 ###################################
@@ -9,10 +11,9 @@
 # Includes #
 ############
 
+
 # Elements for running the simulation
 from ..backend import wsn_simulator as simulator
-#from backend import misc
-#from backend import network_simulator
 
 # Qt backend
 from PyQt5.QtWidgets import *
@@ -27,9 +28,8 @@ from matplotlib.figure import Figure
 import numpy as np
 
 # Default modules
-import sys
-import os
 from copy import copy
+
 
 class PlotCanvas(FigureCanvasQTAgg):
 
@@ -87,6 +87,7 @@ class PlotCanvas(FigureCanvasQTAgg):
 
     def updateAxes(self):
         self.draw()
+
 
 # GUI class, implements the functionality from the backend 
 class Window(QMainWindow):
