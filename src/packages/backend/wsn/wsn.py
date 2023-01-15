@@ -1,4 +1,6 @@
 
+
+
 ############################################
 # Sensoric network object, containing all  #
 # nodes and informations needed for the    #
@@ -21,7 +23,6 @@ from numpy.random import uniform
 import math
 import random
 import shapely
-import time
 
 
 
@@ -233,19 +234,23 @@ class SensoricNetwork():
         # 
         self.ml_ClusterHeads = set()
 
+        ######################
+        # Simulation results #
+        ######################
+
+        self.mv_Rounds = 0
+
         #################
         # Miscellaneous #
         #################
 
         # Max iterations of the PSO algorithm, should be 2500
-        self.mv_MaxIteration = 50
-
-        # Stores the "uptime" of the network
-        self.mv_Lifetime = None
+        self.mv_MaxIteration = 2000
 
         # Currently used algorithm
         self.mv_CurrentAlgorithm = self.ml_Algorithms[0]
 
+        # Stores the plot data
         self.ml_xAxisPlotData = []
         self.ml_yAxisPlotData = []
         self.ml_ColorPlotData = []
@@ -288,6 +293,12 @@ class SensoricNetwork():
     ##############################
 
 
+    #####################
+    # Setters / Getters #
+    #####################
+
+
+    # Sets the height of the networks area
     def set_height(self, height=int):
 
         # Setting the height
@@ -311,6 +322,8 @@ class SensoricNetwork():
         
         self.initiate_network()
 
+
+    # Sets the width of the networks area
     def set_width(self, width=int):
 
         # Setting the width
@@ -335,7 +348,7 @@ class SensoricNetwork():
         self.initiate_network()
 
 
-#    Changes the area of the network
+    # Changes both the height and the width of the area
     def set_area_dimensions(self, height=int, width=int):
 
         # Setting the height
@@ -397,6 +410,7 @@ class SensoricNetwork():
         self.mv_MinimumCoverage=percent_of_area
 
 
+    # Sets the current algorithm
     def set_algorithm(self, index=int):
         self.mv_CurrentAlgorithm = self.ml_Algorithms[index]
 
@@ -411,13 +425,17 @@ class SensoricNetwork():
             node.set_sink_node(self.ml_Nodes[node_number])
 
 
-    def can_initiate(self):
-        print() 
+    # Returns the value of rounds that a simulation has passed
+    def get_rounds(self):
+        return self.mv_Rounds
 
 
-    # Sets the network up with the given amount of nodes, 
-    # that are spread over a certain and defined area and each one
-    # with a battery cell of which the size is specified
+    #########################
+    # Network setup methods #
+    #########################
+
+
+    # Initialises the network with stored parameters, random = uniform distribution for nodes placement
     def initiate_network(self):
 
         # Creating the sensors
@@ -451,78 +469,9 @@ class SensoricNetwork():
         return (self.mv_ActiveNodes * 100) / self.mv_NodeAmount
 
 
-    def search_sink_recursive(self, node=None, path_list=None):
-
-        for node in self.ml_Nodes:
-
-            sink_found = False
-            error_occured = False
-
-            path = node.ml_Path
-            adj = node.ml_AdjacentNodes
-
-            while not sink_found and not error_occured:
-
-                if len(adj) == 0:
-                    error_occured = True
-                    break
-
-                distance = None
-                best_node = None
-
-                for n in adj:
-                    if id(n) == id(node.ml_SinkNodes[0]):
-                        path_list.append(n)
-                        sink_found = True
-                        break
-
-                    temp = shapely.distance(node.ml_SinkNodes[0].get_localization(), n.get_localization())
-
-                    if distance == None:
-                        distance = temp
-
-                    elif temp < distance:
-                        best_node = n
-                        distance = temp
-
-                node.ml_Path.append(best_node)
-
-                adj = best_node.ml_AdjacentNodes
-
-
-
-        # Proceeds if the needed variables aren't empty
-        if node != None or path_list != None:
-
-            if node.ml_AdjacentNodes != 0:
-                # 
-                distance = None
-                best_node = None
-
-                for n in node.ml_AdjacentNodes:
-                    if id(n) == id(node.ml_SinkNodes[0]):
-                        path_list.append(n)
-                        return
-
-                    print("Sinkju")
-                    print(len(node.ml_SinkNodes))
-                    temp = shapely.distance(node.ml_SinkNodes[0].get_localization(), n.get_localization())
-
-                    if distance == None:
-                        distance = temp
-
-                    elif temp < distance:
-                        best_node = n
-                        distance = temp
-
-                if best_node != None:
-                    path_list.append(best_node)
-
-                    self.search_sink_recursive(best_node, path_list)
-
-
-    def path_to_sink(self, node, sink, ):
-        stack, path = [node], []
+    ###################################
+    # Naive routing sollution methods #
+    ###################################
 
 
     def dfs(self, visited, node, sink):  #function for dfs 
@@ -534,8 +483,6 @@ class SensoricNetwork():
             visited.add(node)
             for neighbour in node.ml_AdjacentNodes:
                 self.dfs(visited, neighbour, sink)  
-
-
 
 
     def naive_algorithm(self):
@@ -595,11 +542,6 @@ class SensoricNetwork():
                         node.add_to_neighbours_list(another_node)
 
             print(node.get_neighbours_amount())
-        
-        # Searching for a individual path to a sink for each node
-        #for node in self.ml_Nodes:
-            
-        #self.search_sink_recursive(node, node.ml_Path)
 
         visited = set()
 
@@ -613,11 +555,6 @@ class SensoricNetwork():
                     node.add_to_path(v)
                 print(len(node.ml_Path))
 
-        # Calculating coverage for the test
-        # Can assume that the coverage is the overall percent of the network as is, while discarding the area approach
-        # crappy apporach
-        # and can calculate the coverage by using shapely.difference(Area, sensor range) and substracting all of the sensors
-        # area from the overall network area, then calculating the percentile coverage.
 
         while self.calculate_coverage() > self.mv_MinimumCoverage:
 
@@ -669,11 +606,11 @@ class SensoricNetwork():
             node.activate()
             self.mv_ActiveNodes+=1
 
-        rounds = 0
+        self.mv_Rounds = 0
 
         while self.calculate_coverage() > self.mv_MinimumCoverage:
 
-            rounds+=1
+            self.mv_Rounds += 1
 
             for node in self.ml_Nodes:
                 if node.is_active():
@@ -684,13 +621,15 @@ class SensoricNetwork():
                     node.deactivate()
                     self.mv_ActiveNodes-=1
 
-        print(rounds)
+        print(self.mv_Rounds)
+
             
-    #############################################
-    # Here is the biggest thing of this program #
-    #############################################
+    ###############################################
+    # Particle Swarm Optimisation routing methods #
+    ###############################################
 
     
+    #
     def calculate_optimal_clasters_amount(self, radius_start, radius_max, area, dist_max, h_value):
         a = area
         R = radius_start
@@ -830,7 +769,6 @@ class SensoricNetwork():
         )
 
 
-
     # Calculates the fitness parameter without IoT
     def fitness(self, particle):
 
@@ -872,6 +810,8 @@ class SensoricNetwork():
             return (alpha * (self.amount_of_nodes_in_area(area)/self.mv_NodeAmount) 
             + (1 - alpha)/(iou))
 
+
+    #
     def Weight(self, node):
 
         #
@@ -934,6 +874,7 @@ class SensoricNetwork():
         return u1*(dv/d0) + u2 * (dj/d0) + u3 * (100/Ej)
 
 
+    # The setup phase of the PSO algorithm
     def pso_setup(self):
         ###############
         # Setup phase #
@@ -1132,7 +1073,7 @@ class SensoricNetwork():
                     self.ml_Clusters[temp[1]].append(node)
 
 
-    # The PSO algorithm that implements the Fitness functions etc.
+    # The setup + steady phase of pso
     def pso_algorithm(self):
 
         self.pso_setup()
@@ -1141,7 +1082,7 @@ class SensoricNetwork():
         # Steady state #
         ################
 
-        rounds = 0
+        self.mv_Rounds = 0
         print("Begining the pso simulation!")
 
         while self.calculate_coverage() > self.mv_MinimumCoverage:
@@ -1227,11 +1168,17 @@ class SensoricNetwork():
                     self.mv_ActiveNodes-=1
 
             print(self.mv_ActiveNodes)
-            rounds+=1
-            print(f"Chuj = ", rounds)
+            self.mv_Rounds += 1
+
         ########################################
 
+        print(self.mv_Rounds)
     
+    ####################
+    # Plotting methods #
+    ####################
+
+
     def calculate_plot_data(self):
 
         self.ml_xAxisPlotData = []
@@ -1263,5 +1210,3 @@ class SensoricNetwork():
         self.mv_ActiveNodes = 0
 
         self.ml_SinkNodes.clear()
-
-

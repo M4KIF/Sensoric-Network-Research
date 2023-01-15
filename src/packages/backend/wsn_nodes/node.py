@@ -438,7 +438,3 @@ class Node():
     def aggregate_data(self, distance=float):
 
         self.mo_SOC.aggregate_data(distance)
-
-
-    
-
