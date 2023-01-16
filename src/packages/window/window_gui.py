@@ -73,7 +73,7 @@ class PlotCanvas(FigureCanvasQTAgg):
 
 
     def createAreaPlot(self, x, y, color):
-        self.m_Plots.scatter(x, y, s=50, c=color, cmap="spring")
+        self.m_Plots.scatter(x, y, s=50, c=color, cmap="Set1")
 
 
     def clearCanvas(self):

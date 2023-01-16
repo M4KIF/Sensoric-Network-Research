@@ -26,20 +26,11 @@ from numpy.random import uniform
 # For the calculations
 import math
 
-# Mainly for setting randomised values in pso formulas
-import random
-
 # Geographical functionality
 import shapely
 
 # Threading support
 from PyQt5.QtCore import pyqtSignal, QObject, QMutex
-
-# For making it possible to watch the network
-import time
-
-# 
-import matplotlib.colors as colors
 
 
 #######################################
@@ -905,6 +896,8 @@ class SensoricNetwork(QObject):
         self.mv_LND = 0
         self.mutex.unlock()
 
+        print("Running Naive Simulation")
+
         while self.calculate_coverage() > self.mv_MinimumCoverage:
             
             for node in self.ml_Nodes:
@@ -983,7 +976,7 @@ class SensoricNetwork(QObject):
 
 
     # Calculates the amount of nodes that intersect and compares over universal set(total nodes amount)
-    def IoU(self, particle_compared, particles):
+    def IoU(self, particle_compared, particles, active_nodes):
 
         # The polygon that I will check for nodes in intersection between a second circle
         point = particle_compared.get_position()
@@ -992,22 +985,29 @@ class SensoricNetwork(QObject):
         # Contains all of the particles found in the intersections
         particles_in_intersections = set()
 
+        intersections = []
+
         for p in particles:
             if id(particle_compared) != id(p):
                 temp = p.get_position().buffer(p.get_radius())
 
                 if shapely.intersects(area, temp):
-                    intersection = shapely.intersection(area, temp)
+                    intersections.append(shapely.intersection(area, temp))
 
-                    if not intersection.area == 0:
+        if len(intersections) == 0:
+            return 0
+        elif len(intersections) == 1:
+            intersection = intersections[0]
+        else:
+            intersection = shapely.union_all(intersections)
 
-                        for node in self.ml_Nodes:
+        for node in active_nodes:
 
-                            if shapely.intersects(intersection, node.get_localization()):
-                                particles_in_intersections.add(id(node))
+            if shapely.intersects(intersection, node.get_localization()):
+                particles_in_intersections.add(id(node))
 
         # Returning the value
-        return len(particles_in_intersections)/len(particles)
+        return len(particles_in_intersections)/len(active_nodes)
 
 
     # Calculates and updates the x and z velocity of the particle
@@ -1023,15 +1023,15 @@ class SensoricNetwork(QObject):
         c2 = 2
 
         # Random values from (0,1)
-        r1 = random.random()
-        r2 = random.random()
+        r1 = uniform(0, 1)
+        r2 = uniform(0, 1)
 
         # The values cant be equal to 0
         while r1==0:
-            r1 = random.random()
+            r1 = uniform(0, 1)
 
         while r2==0:
-            r2 = random.random()
+            r2 = uniform(0, 1)
 
         # Calculating the inertia value
         w = w_max - (w_max-w_min)/self.mv_MaxIteration * iteration
@@ -1124,7 +1124,7 @@ class SensoricNetwork(QObject):
 
 
     # Calculates the fitness parameter with IoT
-    def Fitness(self, particle, particles):
+    def Fitness(self, particle, particles, nodes_active):
 
         point = particle.get_position()
         area = point.buffer(particle.get_radius())
@@ -1133,12 +1133,12 @@ class SensoricNetwork(QObject):
         alpha = 0.9
 
         # IoU value
-        iou = self.IoU(particle, particles)
+        iou = self.IoU(particle, particles, nodes_active)
 
         # Checking if calculating global Fitness is the right choice here
         if iou == 0:
             # Returning the value without the 
-            return (alpha * (self.amount_of_nodes_in_area(area)/self.mv_NodeAmount)+ (1 - alpha)/(0.0001/self.mv_NodeAmount))
+            return (alpha * (self.amount_of_nodes_in_area(area)/self.mv_NodeAmount)+ (1 - alpha)/(0.0001/len(nodes_active)))
         else:
             # Returning the value
             return (alpha * (self.amount_of_nodes_in_area(area)/self.mv_NodeAmount) 
@@ -1146,35 +1146,27 @@ class SensoricNetwork(QObject):
 
 
     #
-    def Weight(self, node):
+    def Weight(self, node, nodes_active, area):
 
         #
         weight_1 = 0.8
         weight_2 = 0.05
         weight_3 = 0.15
 
-        # Searching for nodes in communication range
-        area = node.get_localization().buffer(node.get_communication_range())
-
-        nodes_in_range = []
-
-        for n in self.ml_Nodes:
-            
-            if id(node)!=id(n):
-                if shapely.intersects(area, n.get_localization()):
-                    nodes_in_range.append(node)
-
-        # Calculating minimum distance from the CH candidates to the BN
-
         minimum_distance = 100000
+        nodes_in_range = 0
 
-        for n in nodes_in_range:
-            temp = shapely.distance(self.mv_BaseStation.get_localization(), n.get_localization())
-            if temp < minimum_distance:
-                minimum_distance = temp
+        for n in nodes_active:
+
+            if shapely.intersects(area, n.get_localization()):
+                nodes_in_range+=1
+                temp = shapely.distance(self.mv_BaseStation.get_localization(), n.get_localization())
+
+                if temp < minimum_distance:
+                    minimum_distance = temp
                 
         weight = (weight_1 * (node.get_battery_level() / 100) + 
-            weight_2 * (len(nodes_in_range)/self.mv_NodeAmount) +
+            weight_2 * (nodes_in_range/len(nodes_active)) +
             weight_3 * (minimum_distance/shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization())))
 
         return weight
@@ -1252,43 +1244,27 @@ class SensoricNetwork(QObject):
             if node.get_battery_level() > 1:
 
                 self.mutex.lock()
-                # Appending the particles list
-                particles.append(Particle(position=node.get_localization(), velocity=uniform(-20, 20)))
-                self.mutex.unlock()
+
+                # Creating a temporary var for storing the particle
+                temp = Particle(position=node.get_localization(), velocity=uniform(-50, 50))
+
+                # Temporary variable for storing the current distance from base station
+                dis = shapely.distance(temp.get_position(), self.mv_BaseStation.get_localization())
+
+                # Settting parameters
+                temp.set_radius((dis/dis_max * (radius_max - radius_min) + radius_min))
+                temp.set_pbest(temp)
+
+                # Adding to the particles list and nodes_list
+                particles.append(temp)
                 node_set.add(node)
 
-        # Initialising the radius, pfitness and pbest values inside the particles
-        for particle in particles:
-            # Calculating the distance from the particle to the base node
-            dis = shapely.distance(particle.get_position(), self.mv_BaseStation.get_localization())
-
-            # Calculating and setting the particle radius
-            self.mutex.lock()
-            particle.set_radius((dis/dis_max * (radius_max - radius_min) + radius_min))
-            self.mutex.unlock()
-
-            self.mutex.lock()
-            particle.set_pfitness(self.fitness(particle))
-            self.mutex.unlock()
-
-            # Using a shortcut, setting the pbest as particle, and not a point, for easier calculations
-            self.mutex.lock()
-            particle.set_pbest(particle)
-            self.mutex.unlock()
-
-        # Searching for an appropriate gbest init value
-        gbest = None
-        value = 0
-        for particle in particles:
-            temp = self.Fitness(particle, particles)
-            if temp > value:
-                value = temp
-                gbest = particle
+                self.mutex.unlock()
 
         # Setting the gbest across particles
         for particle in particles:
             self.mutex.lock()
-            particle.set_gbest(gbest)
+            particle.set_gbest(particles[0].get_pbest())
             self.mutex.unlock()
 
         # List containing all of the added gbest values. Enables the searching of appropriate ch nodes later
@@ -1330,9 +1306,9 @@ class SensoricNetwork(QObject):
                     particles[j].set_pbest(particles[j])
                     self.mutex.unlock()
 
-                fitness_population = self.Fitness(particles[j], particles)
+                fitness_population = self.Fitness(particles[j], particles, node_set)
 
-                if fitness_population < self.Fitness(particles[j].get_gbest(), particles):
+                if fitness_population < self.Fitness(particles[j].get_gbest(), particles, node_set):
                     gbest = particles[j]
                     gbest_values.append(gbest)
 
@@ -1346,7 +1322,7 @@ class SensoricNetwork(QObject):
             for particle in gbest_values:
             
                 # If the ratio of intersected nodes to all nodes is to0 high, discards the candidate
-                if self.IoU(particle, particles) < 0.70:
+                if self.IoU(particle, particles, node_set) < 0.70:
                     ch_area_candidates.append(particle)
 
             # Searching for the CH nodes in the CH candidate areas
@@ -1358,21 +1334,15 @@ class SensoricNetwork(QObject):
                 # List of from which there will be a CH choosen
                 nodes = set()
 
+                ch = (None, 10000000)
+
                 # Checking for nodes that are inside of the candidate area
                 for node in node_set:
                     
-                        # If the node is withing the area, it is added to the list
-                        if shapely.intersects(area, node.get_localization()):
-                            nodes.add(node)
-
-                # Tuple that will help find the final CH node from the candidates found above
-                ch = (None, 10000000)
-
-                # Comparing the weights of every individual nodes in the candidate's list
-                for node in nodes:
-                
+                    # If the node is withing the area, it is added to the list
+                    if shapely.intersects(area, node.get_localization()):
                         # Calculating and storing the weight value
-                        temp = self.Weight(node)
+                        temp = self.Weight(node, node_set, area)
 
                         # Checking if it is bigger than the other
                         if temp < ch[1]:
@@ -1383,6 +1353,7 @@ class SensoricNetwork(QObject):
                 # Adding found nodes to the set
                 if ch[0] != None:
                     self.mutex.lock()
+                    ch[0].activate_cluster_head_flag()
                     self.ml_ClusterHeads.add(ch[0])
                     self.mutex.unlock()
             
@@ -1394,17 +1365,6 @@ class SensoricNetwork(QObject):
         ###############################
         # Assigning nodes to clusters #
         ###############################
-
-        # Checking for dead ones
-        alive = set()
-
-        for ch in self.ml_ClusterHeads:
-            if not ch.is_battery_low():
-                alive.add(ch)
-
-        self.mutex.lock()
-        self.ml_ClusterHeads=alive
-        self.mutex.unlock()
 
         # Adding the cluster heads to the clusters lists
         for ch in self.ml_ClusterHeads:
@@ -1421,16 +1381,6 @@ class SensoricNetwork(QObject):
 
         # Checking which nodes are closer than d0 to the base station
         free_nodes = node_set.difference(self.ml_ClusterHeads)
-        for node in free_nodes:
-            
-            if not node.is_active() and not node.is_battery_low():
-            
-                if shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization()) < self.mv_BaseStation.get_amplifier_threshold_distance():
-                    self.ml_NodeToBaseNode.add(node)
-                    self.mv_ActiveNodes+=1
-                    node.activate()
-
-        free_nodes = free_nodes.difference(self.ml_NodeToBaseNode)
 
         # Adding nodes to the clusters
         for node in free_nodes:
@@ -1471,6 +1421,7 @@ class SensoricNetwork(QObject):
         ################
 
         self.mv_LND = 0
+        print("Running PSO Simulation")
 
         while self.calculate_coverage() > self.mv_MinimumCoverage:
 
@@ -1586,9 +1537,9 @@ class SensoricNetwork(QObject):
                     self.calculate_plot_data()
 
             self.signal_send_active_nodes.emit(self.mv_ActiveNodes)
+            self.mv_LND += 1
             print(self.mv_LND)
             print(self.mv_ActiveNodes)
-            self.mv_LND += 1
 
         ########################################
 

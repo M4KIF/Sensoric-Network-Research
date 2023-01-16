@@ -175,11 +175,13 @@ class Node():
     # Activates the base station flag
     def activate_base_station_flag(self):
         self.mb_BaseStation = True
+        self.mv_Color = 0
 
 
     # Deactivates the base station flag
     def deactivate_base_station_flag(self):
         self.mb_BaseStation = False
+        self.mv_Color = 80
 
 
     # Returns the value of the base station flag
@@ -190,11 +192,13 @@ class Node():
     # Activates the cluster head flag
     def activate_cluster_head_flag(self):
         self.mb_ClusterHead = True
+        self.mv_Color = 40
 
 
     # Deactivates the cluster head flag
     def deactivate_cluster_head_flag(self):
         self.mb_ClusterHead = False
+        self.mv_Color = 80
 
 
     # Returns the cluster head flag value

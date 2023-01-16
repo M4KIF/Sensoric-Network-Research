@@ -17,9 +17,6 @@
 # Contains the battery object
 from .battery import Battery
 
-# Contains the scientific constatns
-from scipy import constants as sc_const
-
 # For the energy consumption formulas
 from math import sqrt, pow
 
