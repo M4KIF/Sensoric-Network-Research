@@ -1387,7 +1387,6 @@ class SensoricNetwork(QObject):
                     self.ml_ClusterHeads.add(ch[0])
                     self.mutex.unlock()
             
-            print(f"Cluester headow ", len(self.ml_ClusterHeads))
             if len(self.ml_ClusterHeads) >= math.ceil(C):
                 break
 
@@ -1423,7 +1422,6 @@ class SensoricNetwork(QObject):
 
         # Checking which nodes are closer than d0 to the base station
         free_nodes = node_set.difference(self.ml_ClusterHeads)
-        print(f"NODKI WOLNE", len(free_nodes))
         for node in free_nodes:
             
             if not node.is_active() and not node.is_battery_low():
@@ -1474,7 +1472,6 @@ class SensoricNetwork(QObject):
         ################
 
         self.mv_LND = 0
-        print("Begining the pso simulation!")
 
         while self.calculate_coverage() > self.mv_MinimumCoverage:
 
@@ -1530,7 +1527,6 @@ class SensoricNetwork(QObject):
                         head.add_to_path(self.mv_BaseStation)
                 else:
                     reshuffle = True
-                    print("CHUJINA")
 
             if reshuffle:
                 self.pso_setup()
@@ -1542,13 +1538,11 @@ class SensoricNetwork(QObject):
             #############################
 
             # The direct communicating nodes go first
-            print(f"LEN NODETOBASE: ", len(self.ml_NodeToBaseNode))
             for node in self.ml_NodeToBaseNode:
                 node.transmit_data(shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization()))
 
             # First, the clusters collect the data
             for i in range(len(self.ml_Clusters)):
-                print(f"JAKIS CLUSTER", len(self.ml_Clusters[i]))
                 if self.ml_Clusters[i][0].is_active():
                     for j in range(len(self.ml_Clusters[i])):
 
@@ -1561,7 +1555,6 @@ class SensoricNetwork(QObject):
                 path = ch[0].get_path()
 
                 # Pretending that the
-                print(f"SCIESKO MO: ", len(path))
                 if len(path) > 1:
                     # Pretending that I am sending data_packets from the ch to the first hop
                     ch[0].aggregate_and_send_data(distance=shapely.distance(ch[0].get_localization(), path[0].get_localization()), amount_of_data_packets=1)
