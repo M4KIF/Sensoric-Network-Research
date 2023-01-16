@@ -107,6 +107,12 @@ class Window(QMainWindow):
         # App name
         self.m_AppName = "WSN-Research"
 
+        # Setting the window title to the above
+        self.setWindowTitle(self.m_AppName)
+
+        # Plot data
+        self.m_PlotData = []
+
         # The backend, that the window will visualise
         self.backend = network.SensoricNetwork(node_amount=50, battery_capacity=1, width=200, height=200)
 
@@ -377,9 +383,16 @@ class Window(QMainWindow):
 
 
     def draw_plot(self, temp):
+
+        # Clearing the axes
         self.area_widget.clearAxes()
 
-        self.area_widget.createAreaPlot(temp[0], temp[1], temp[2])
+        # Getting the data from the thread
+        if self.backend.mutex.tryLock():
+            self.m_PlotData = copy(temp)
+        self.backend.mutex.unlock()
+
+        self.area_widget.createAreaPlot(self.m_PlotData[0], self.m_PlotData[1], self.m_PlotData[2])
 
         self.area_widget.updateAxes()
 

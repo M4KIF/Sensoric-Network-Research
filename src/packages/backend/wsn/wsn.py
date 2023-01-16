@@ -370,7 +370,7 @@ class SensoricNetwork(QObject):
         self.ml_Clusters = []
 
         # 
-        self.ml_NodeToBaseNode = []
+        self.ml_NodeToBaseNode = set()
 
         # 
         self.ml_ClusterHeads = set()
@@ -458,6 +458,7 @@ class SensoricNetwork(QObject):
     # Sets the height of the networks area
     def set_height(self, height=int):
 
+        self.mutex.lock()
         # Setting the height
         self.mv_Height = height
 
@@ -473,9 +474,14 @@ class SensoricNetwork(QObject):
         for node in self.ml_Nodes:
             node.clear()
 
+        self.mutex.unlock()
+        self.mutex.lock()
+
         self.ml_SinkNodes.clear()
         self.ml_Nodes.clear()
         self.ml_Clusters.clear()
+
+        self.mutex.unlock()
         
         self.initiate_network()
 
@@ -486,13 +492,13 @@ class SensoricNetwork(QObject):
         self.signal_send_hnd_optimised.emit(str(0))
         self.signal_send_lnd_optimised.emit(str(0))
 
-
         self.calculate_plot_data()
 
 
     # Sets the width of the networks area
     def set_width(self, width=int):
 
+        self.mutex.lock()
         # Setting the width
         self.mv_Width = width
 
@@ -508,9 +514,15 @@ class SensoricNetwork(QObject):
         for node in self.ml_Nodes:
             node.clear()
 
+        self.mutex.unlock()
+
+        self.mutex.lock()
+
         self.ml_SinkNodes.clear()
         self.ml_Nodes.clear()
         self.ml_Clusters.clear()
+
+        self.mutex.unlock()
         
         self.initiate_network()
 
@@ -521,13 +533,13 @@ class SensoricNetwork(QObject):
         self.signal_send_hnd_optimised.emit(str(0))
         self.signal_send_lnd_optimised.emit(str(0))
 
-
         self.calculate_plot_data()
 
 
     # Changes both the height and the width of the area
     def set_area_dimensions(self, height=int, width=int):
 
+        self.mutex.lock()
         # Setting the height
         self.mv_Width = width
 
@@ -548,15 +560,24 @@ class SensoricNetwork(QObject):
         for node in self.ml_Nodes:
             node.clear()
 
+        self.mutex.unlock()
+
+        self.mutex.lock()
+
         self.ml_SinkNodes.clear()
         self.ml_Nodes.clear()
         self.ml_Clusters.clear()
+
+        self.mutex.unlock()
         
         self.initiate_network()
 
 
     # Sets the nodes amount
     def set_node_amount(self, amount):
+
+        self.mutex.lock()
+
         self.mv_NodeAmount = amount
 
         # Deactivating the ready flag
@@ -570,6 +591,8 @@ class SensoricNetwork(QObject):
         self.ml_SinkNodes.clear()
         self.ml_Nodes.clear()
         self.ml_Clusters.clear()
+
+        self.mutex.unlock()
         
         self.initiate_network()
 
@@ -580,13 +603,14 @@ class SensoricNetwork(QObject):
         self.signal_send_hnd_optimised.emit(str(0))
         self.signal_send_lnd_optimised.emit(str(0))
 
-
         self.calculate_plot_data()
 
 
     # Sets the battery capacity in mAH
     def set_node_battery_capacity(self, capacity):
+        self.mutex.lock()
         self.mv_BatteryCapacity = capacity
+        self.mutex.unlock()
 
         for node in self.ml_Nodes:
             node.set_battery_capacity(self.mv_BatteryCapacity)
@@ -594,22 +618,30 @@ class SensoricNetwork(QObject):
 
     # Changes the minimum coverage value
     def set_minimum_coverage_value(self, percent_of_area=int):
+        self.mutex.lock()
         self.mv_MinimumCoverage=percent_of_area
+        self.mutex.unlock()
 
 
     # Sets the current algorithm
     def set_algorithm(self, index=int):
+        self.mutex.lock()
         self.mv_CurrentAlgorithm = self.ml_Algorithms[index]
+        self.mutex.unlock()
 
 
     # Setting a sink node
     def set_sink_node(self, node_number=int):
+        self.mutex.lock()
+
         sink = id(self.ml_Nodes[node_number])
 
         self.ml_SinkNodes.append(sink)
 
         for node in self.ml_Nodes:
             node.set_sink_node(self.ml_Nodes[node_number])
+
+        self.mutex.unlock()
 
 
     #
@@ -658,13 +690,13 @@ class SensoricNetwork(QObject):
     #
     def get_algorithms_list(self):
         self.signal_send_algorithms_list.emit(self.ml_Algorithms)
-        return self.ml_Algorithms
+        #return self.ml_Algorithms
 
 
     #
     def get_plot_data(self):
         self.signal_send_plot_data.emit([self.ml_xAxisPlotData, self.ml_yAxisPlotData, self.ml_ColorPlotData])
-        return [self.ml_xAxisPlotData, self.ml_yAxisPlotData, self.ml_ColorPlotData]
+        #return [self.ml_xAxisPlotData, self.ml_yAxisPlotData, self.ml_ColorPlotData]
 
 
     #########################
@@ -677,26 +709,42 @@ class SensoricNetwork(QObject):
 
         # Creating the sensors
         for i in range(self.mv_NodeAmount):
-
+            
+            self.mutex.lock()
             # Creating a node with given battery capacity and random points taken from the area that shall be covered
             self.ml_Nodes.append(components.Node(self.mv_BatteryCapacity, uniform(0.0, self.mv_Width), uniform(0.0, self.mv_Height)))
+            self.mutex.unlock()
 
+        self.mutex.lock()
         # Creating the base station
         self.mv_BaseStation=components.Node(
             self.mv_BatteryCapacity, self.mv_AreaPolygon.point_on_surface().coords[:][0][0], 
             self.mv_AreaPolygon.point_on_surface().coords[:][0][1]
             )
+        self.mutex.unlock()
+
+        self.mutex.lock()
 
         # Activating the correct flag on the node
         self.mv_BaseStation.activate_base_station_flag()
+
+        self.mutex.unlock()
+
+        self.mutex.lock()
 
         # Setting the base station across the nodes
         for node in self.ml_Nodes:
             node.set_base_station(self.mv_BaseStation)
             node.deactivate()
 
+        self.mutex.unlock()
+
+        self.mutex.lock()
+
         # Activating the flag indicating that the network is ready for a simulation
         self.mb_Ready = True
+
+        self.mutex.unlock()
 
         self.calculate_plot_data()
 
@@ -843,39 +891,57 @@ class SensoricNetwork(QObject):
         # Nodes setup, searching for a sink #
         #####################################
 
+        self.mutex.lock()
+
         for node in self.ml_Nodes:
             node.activate()
             self.mv_ActiveNodes+=1
 
+        self.mutex.unlock()
+
+        self.mutex.lock()
         self.mv_LND = 0
+        self.mutex.unlock()
 
         while self.calculate_coverage() > self.mv_MinimumCoverage:
-
+            
             for node in self.ml_Nodes:
                 if node.is_active():
                     node.transmit_data(shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization()))
 
             for node in self.ml_Nodes:
-                if node.get_battery_level() < 2 and node.is_active():
+                if node.get_battery_level() < 1 and node.is_active():
                     node.deactivate()
                     self.mv_ActiveNodes-=1
 
                     if not self.mb_FirstNodeDied and self.mv_ActiveNodes == (self.mv_NodeAmount-1):
+                        self.mutex.lock()
                         self.mv_FND = self.mv_LND
+                        self.mutex.unlock()
                         self.signal_send_fnd_naive.emit(str(self.mv_LND))
+                        self.mutex.lock()
                         self.mb_FirstNodeDied = True
+                        self.mutex.unlock()
                     
                     if not self.mb_HalfNodesDies and self.mv_ActiveNodes < self.mv_NodeAmount - (self.mv_NodeAmount - (int(float(self.mv_MinimumCoverage/100)*float(self.mv_NodeAmount))))/2:
+                        self.mutex.lock()
                         self.mv_HND = self.mv_LND
+                        self.mutex.unlock()
                         self.signal_send_hnd_naive.emit(str(self.mv_LND))
+                        self.mutex.lock()
                         self.mb_HalfNodesDies = True
+                        self.mutex.unlock()
                     self.calculate_plot_data()
 
             self.signal_send_active_nodes.emit(str(self.mv_ActiveNodes))
+            self.mutex.lock()
             self.mv_LND += 1
+            self.mutex.unlock()
 
         self.signal_send_lnd_naive.emit(str(self.mv_LND))
+        self.mutex.lock()
         self.mb_LastNodeDied = True
+        self.mutex.unlock()
         self.cleanup_after_simulation()
 
             
@@ -983,9 +1049,13 @@ class SensoricNetwork(QObject):
                 c2 * r2 * (particle.get_gbest().get_position().coords[:][0][1] - particle.get_z_velocity())
             )
 
+        self.mutex.lock()
         particle.set_x_velocity(velocity_x)
+        self.mutex.unlock()
 
+        self.mutex.lock()
         particle.set_z_velocity(velocity_z)
+        self.mutex.unlock()
 
 
     # 
@@ -995,33 +1065,43 @@ class SensoricNetwork(QObject):
         # and the acceleration sign is negative, multiply by -1 
         if (particle.get_x_position() + particle.get_x_velocity()) < 0:
             if particle.get_x_velocity() < 0:
+                self.mutex.lock()
                 particle.set_x_velocity(-1*particle.get_x_velocity())
+                self.mutex.unlock()
 
         # If the particle will get out of bounds through the right area border after addition of the acceleration value
         # and the acceleration sign is positive, multiply by -1 
         if (particle.get_x_position() + particle.get_x_velocity()) > self.mv_Width:
             if particle.get_x_velocity() > 0:
+                self.mutex.lock()
                 particle.set_x_velocity(-1*particle.get_x_velocity())
+                self.mutex.unlock()
 
         # If the particle will get out of bounds through the bottom area border after addition of the acceleration value
         # and the acceleration sign is positive, multiply by -1 
         if (particle.get_z_position() + particle.get_z_velocity()) < 0:
             if particle.get_z_velocity() < 0:
+                self.mutex.lock()
                 particle.set_z_velocity(-1*particle.get_z_velocity())
+                self.mutex.unlock()
 
         # If the particle will get out of bounds through the top area border after addition of the acceleration value
         # and the acceleration sign is positive, multiply by -1 
         if (particle.get_z_position() + particle.get_z_velocity()) > self.mv_Height:
             if particle.get_z_velocity() > 0:
+                self.mutex.lock()
                 particle.set_z_velocity(-1*particle.get_z_velocity())
+                self.mutex.unlock()
         
         # Setting the position after correction
+        self.mutex.lock()
         particle.set_position(
             shapely.Point(
                 particle.get_x_position() + particle.get_x_velocity(),
                 particle.get_z_position() + particle.get_z_velocity()
             )
         )
+        self.mutex.unlock()
 
 
     # Calculates the fitness parameter without IoT
@@ -1103,8 +1183,8 @@ class SensoricNetwork(QObject):
 
     # Calculates the weight of the next hop candidate
     def hop_weight(self, node, candidate_node):
-        u1=0.2
-        u2=0.6
+        u1=0.35
+        u2=0.45
         u3=0.2
 
         d0 = self.mv_BaseStation.get_amplifier_threshold_distance()
@@ -1126,7 +1206,7 @@ class SensoricNetwork(QObject):
 
         )
 
-        return u1*(dv/d0) + u2 * (dj/d0) + u3 * (100/Ej)
+        return u1*(dv/d0) + u2 * (dj/d0) + u3 * (Ej)
 
 
     # The setup phase of the PSO algorithm
@@ -1135,13 +1215,16 @@ class SensoricNetwork(QObject):
         # Setup phase #
         ###############
 
-        self.mv_ActiveNodes = 0
+        self.mutex.lock()
 
+        self.mv_ActiveNodes = 0
         self.ml_ClusterHeads.clear()
         self.ml_NodeToBaseNode.clear()
         for cluster in self.ml_Clusters:
             cluster.clear()
         self.ml_Clusters.clear()
+
+        self.mutex.unlock()
 
         # Stores the iterations value
         total_iterations = 0
@@ -1161,17 +1244,19 @@ class SensoricNetwork(QObject):
         # List of all particles
         particles = []
 
+        node_set = set()
+
         # Creating the particles with inital positions taken from node's positions
         for node in self.ml_Nodes:
+            node.deactivate()
 
             if node.get_battery_level() > 1:
 
-                # Clearing important flags
-                node.deactivate()
-                node.clear_path()
-
+                self.mutex.lock()
                 # Appending the particles list
                 particles.append(Particle(position=node.get_localization(), velocity=uniform(-20, 20)))
+                self.mutex.unlock()
+                node_set.add(node)
 
         # Initialising the radius, pfitness and pbest values inside the particles
         for particle in particles:
@@ -1179,12 +1264,18 @@ class SensoricNetwork(QObject):
             dis = shapely.distance(particle.get_position(), self.mv_BaseStation.get_localization())
 
             # Calculating and setting the particle radius
+            self.mutex.lock()
             particle.set_radius((dis/dis_max * (radius_max - radius_min) + radius_min))
+            self.mutex.unlock()
 
+            self.mutex.lock()
             particle.set_pfitness(self.fitness(particle))
+            self.mutex.unlock()
 
             # Using a shortcut, setting the pbest as particle, and not a point, for easier calculations
+            self.mutex.lock()
             particle.set_pbest(particle)
+            self.mutex.unlock()
 
         # Searching for an appropriate gbest init value
         gbest = None
@@ -1197,7 +1288,9 @@ class SensoricNetwork(QObject):
 
         # Setting the gbest across particles
         for particle in particles:
+            self.mutex.lock()
             particle.set_gbest(gbest)
+            self.mutex.unlock()
 
         # List containing all of the added gbest values. Enables the searching of appropriate ch nodes later
         gbest_values = []
@@ -1208,6 +1301,12 @@ class SensoricNetwork(QObject):
             # Iterating through the particles
             for j in range(len(particles)):
 
+                # Updating the velocity of the particle
+                self.update_velocity(particles[j], i)
+
+                # Updating the position of the particle based on the velocity
+                self.update_position(particle=particles[j])
+
                 # Calculating the distance from the particle to the base node
                 dis = shapely.distance(particles[j].get_position(), self.mv_BaseStation.get_localization())
 
@@ -1215,40 +1314,31 @@ class SensoricNetwork(QObject):
                 value = (dis/dis_max * (radius_max - radius_min) + radius_min)
 
                 if value < radius_max:
+                    self.mutex.lock()
                     particles[j].set_radius(value)
+                    self.mutex.unlock()
                 else:
+                    self.mutex.lock()
                     particles[j].set_radius(radius_max)
+                    self.mutex.unlock()
                 
                 # Calculating fitness values
                 fitness_particle = self.fitness(particles[j])
 
                 # If the particle doesn't have any neighbours it is automatically added to the best particles list
                 if fitness_particle < self.fitness(particles[j].get_pbest()):
+                    self.mutex.lock()
                     particles[j].set_pbest(particles[j])
-                    
+                    self.mutex.unlock()
+
                 fitness_population = self.Fitness(particles[j], particles)
 
-                gbest_p = None
-                temp = 100000
-                for p in particles:
-                    value = self.Fitness(p.get_pbest(), particles)
-                    if value<temp:
-                        temp = value
-                        gbest_p = p
-
-                # Updating the velocity of the particle
-                self.update_velocity(particles[j], i)
-
-                # Updating the position of the particle based on the velocity
-                self.update_position(particle=particles[j])
-
-
-                if fitness_population < self.Fitness(gbest_p, particles):
+                if fitness_population < self.Fitness(particles[j].get_gbest(), particles):
                     gbest = particles[j]
-                    gbest_values.append(gbest_p)
+                    gbest_values.append(gbest)
 
                     for particle in particles:
-                        particle.set_gbest(gbest_p)
+                        particle.set_gbest(gbest)
 
             # List for storing the candidates for ch areas after discarding some weak options
             ch_area_candidates = []
@@ -1267,19 +1357,17 @@ class SensoricNetwork(QObject):
                 area = particle.get_position().buffer(particle.get_radius())
 
                 # List of from which there will be a CH choosen
-                nodes = []
+                nodes = set()
 
                 # Checking for nodes that are inside of the candidate area
-                for node in self.ml_Nodes:
-
-                    if node.get_battery_level() > 1:
+                for node in node_set:
                     
                         # If the node is withing the area, it is added to the list
-                        if shapely.contains(area, node.get_localization()):
-                            nodes.append(node)
+                        if shapely.intersects(area, node.get_localization()):
+                            nodes.add(node)
 
                 # Tuple that will help find the final CH node from the candidates found above
-                ch = (None, 100000)
+                ch = (None, 10000000)
 
                 # Comparing the weights of every individual nodes in the candidate's list
                 for node in nodes:
@@ -1295,7 +1383,9 @@ class SensoricNetwork(QObject):
             
                 # Adding found nodes to the set
                 if ch[0] != None:
+                    self.mutex.lock()
                     self.ml_ClusterHeads.add(ch[0])
+                    self.mutex.unlock()
             
             print(f"Cluester headow ", len(self.ml_ClusterHeads))
             if len(self.ml_ClusterHeads) >= math.ceil(C):
@@ -1307,28 +1397,46 @@ class SensoricNetwork(QObject):
         # Assigning nodes to clusters #
         ###############################
 
+        # Checking for dead ones
+        alive = set()
+
+        for ch in self.ml_ClusterHeads:
+            if not ch.is_battery_low():
+                alive.add(ch)
+
+        self.mutex.lock()
+        self.ml_ClusterHeads=alive
+        self.mutex.unlock()
+
         # Adding the cluster heads to the clusters lists
         for ch in self.ml_ClusterHeads:
             
-            if not node.is_active() and not node.is_battery_low():
+            if not ch.is_active():
+                self.mutex.lock()
                 # Activating the boolean inside every CH for easy recognition
                 ch.activate()
                 self.mv_ActiveNodes+=1
                 ch.activate_cluster_head_flag()
 
                 self.ml_Clusters.append([ch])
+                self.mutex.unlock()
 
         # Checking which nodes are closer than d0 to the base station
-        for node in self.ml_Nodes:
+        free_nodes = node_set.difference(self.ml_ClusterHeads)
+        print(f"NODKI WOLNE", len(free_nodes))
+        for node in free_nodes:
+            
             if not node.is_active() and not node.is_battery_low():
             
                 if shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization()) < self.mv_BaseStation.get_amplifier_threshold_distance():
-                    self.ml_NodeToBaseNode.append(node)
+                    self.ml_NodeToBaseNode.add(node)
                     self.mv_ActiveNodes+=1
                     node.activate()
 
+        free_nodes = free_nodes.difference(self.ml_NodeToBaseNode)
+
         # Adding nodes to the clusters
-        for node in self.ml_Nodes:
+        for node in free_nodes:
             if not node.is_active() and not node.is_battery_low():
                 # Tuple made out of energy value and cluster index
                 temp = (100000, None)
@@ -1384,17 +1492,16 @@ class SensoricNetwork(QObject):
 
                     # Checking if a node needs multihop
                     if shapely.distance(head.get_localization(), self.mv_BaseStation.get_localization()) > self.mv_BaseStation.get_amplifier_threshold_distance():
-                        hops_left = []
-
-                        for ch in self.ml_ClusterHeads:
-                            hops_left.append(ch)
+                        hops_left = self.ml_ClusterHeads.copy()
                     
-                        hops_left.append(self.mv_BaseStation)
+                        hops_left.add(self.mv_BaseStation)
                         hops_left.remove(head)
 
                         while not head.is_path_estabilished():
                             next_hop_tuple = (None, None)
+                            found_head = False
                             for hop in hops_left:
+
                                 value = self.hop_weight(head, hop)
 
                                 # If the temporal tuple is empty
@@ -1406,10 +1513,15 @@ class SensoricNetwork(QObject):
                                 if value < next_hop_tuple[1]:
                                     temp = (hop, value)
                                     next_hop_tuple = temp
+                                    if id(hop) == id(self.mv_BaseStation):
+                                        head.add_to_path(hop)
+                                        found_head = True
+                                        break
+                                
+                            if found_head:
+                                break
                         
                             head.add_to_path(next_hop_tuple[0])
-                            if id(next_hop_tuple[0]) == id(self.mv_BaseStation):
-                                break
                             hops_left.remove(next_hop_tuple[0])
 
                         # Adding to the paths estabilished index
@@ -1418,27 +1530,29 @@ class SensoricNetwork(QObject):
                         head.add_to_path(self.mv_BaseStation)
                 else:
                     reshuffle = True
+                    print("CHUJINA")
 
-            #if reshuffle:
-                #self.pso_setup()
-                #reshuffle = False
-                #continue
+            if reshuffle:
+                self.pso_setup()
+                reshuffle = False
+                continue
 
             #############################
             # Proceeding with the round #
             #############################
 
             # The direct communicating nodes go first
+            print(f"LEN NODETOBASE: ", len(self.ml_NodeToBaseNode))
             for node in self.ml_NodeToBaseNode:
                 node.transmit_data(shapely.distance(node.get_localization(), self.mv_BaseStation.get_localization()))
 
             # First, the clusters collect the data
             for i in range(len(self.ml_Clusters)):
-
+                print(f"JAKIS CLUSTER", len(self.ml_Clusters[i]))
                 if self.ml_Clusters[i][0].is_active():
                     for j in range(len(self.ml_Clusters[i])):
 
-                        if id(self.ml_Clusters[i][0]) != id(self.ml_Clusters[i][j]):
+                        if id(self.ml_Clusters[i][0]) != id(self.mv_BaseStation):
                             self.ml_Clusters[i][j].transmit_data(shapely.distance(self.ml_Clusters[i][0].get_localization(), self.ml_Clusters[i][j].get_localization()))
 
             # Then the clusters send the data to the base node via their calculated path
@@ -1447,16 +1561,17 @@ class SensoricNetwork(QObject):
                 path = ch[0].get_path()
 
                 # Pretending that the
+                print(f"SCIESKO MO: ", len(path))
                 if len(path) > 1:
                     # Pretending that I am sending data_packets from the ch to the first hop
-                    ch[0].aggregate_and_send_data(distance=shapely.distance(ch[0].get_localization(), path[0].get_localization()), amount_of_data_packets=len(ch))
+                    ch[0].aggregate_and_send_data(distance=shapely.distance(ch[0].get_localization(), path[0].get_localization()), amount_of_data_packets=1)
 
                     # Then the data is sent through other hops
                     for i in range(len(path)-1):
-                        path[i].aggregate_and_send_data(distance=shapely.distance(ch[0].get_localization(), path[i+1].get_localization()), amount_of_data_packets=len(ch))
+                        path[i].aggregate_and_send_data(distance=shapely.distance(ch[0].get_localization(), path[i+1].get_localization()), amount_of_data_packets=1)
                 elif len(path) == 1:
                     # Pretending that I am sending data_packets from the ch to the first hop
-                    ch[0].aggregate_and_send_data(distance=shapely.distance(ch[0].get_localization(), path[0].get_localization()), amount_of_data_packets=len(ch))
+                    ch[0].aggregate_and_send_data(distance=shapely.distance(ch[0].get_localization(), path[0].get_localization()), amount_of_data_packets=1)
                 
             for node in self.ml_Nodes:
                     

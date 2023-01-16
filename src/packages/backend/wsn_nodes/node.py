@@ -133,6 +133,10 @@ class Node():
         # Cleaning the nodes stored in the other nodes list
         self.ml_AdjacentNodes.clear()
         self.ml_Path.clear()
+        self.deactivate_base_station_flag()
+        self.deactivate_multihop_flag()
+        self.deactivate_path_estabilished_flag()
+        self.deactivate_cluster_head_flag()
 
     def clear_flags(self):
         self.deactivate_base_station_flag()
