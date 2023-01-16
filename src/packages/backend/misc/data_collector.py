@@ -86,6 +86,11 @@ class DataCollector():
                 # Saving the figure
                 plt.savefig("lnd"+self.mv_PlotName)
 
+                print("Top-bottom == FND - LND")
+                print(self.ml_NaiveSollutionFND)
+                print(self.ml_NaiveSollutionHND)
+                print(self.ml_NaiveSollutionLND)
+
         elif self.mb_OptimisedData:
             if not len(self.ml_OptimisedSollutionFND) < 2:
                 # Setting the labels
@@ -102,6 +107,12 @@ class DataCollector():
 
                 # Saving the figure
                 plt.savefig(self.mv_PlotName)
+
+                # Printing the data to the console
+                print("Top-bottom == FND - LND")
+                print(self.ml_OptimisedSollutionFND)
+                print(self.ml_OptimisedSollutionHND)
+                print(self.ml_OptimisedSollutionLND)
 
 
 
