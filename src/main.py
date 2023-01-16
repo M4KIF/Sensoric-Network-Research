@@ -3,8 +3,7 @@
 
 ##################################################
 # Main code of the Sensoric network research app #
-# Made by Jakub Koterba, Karolina Bińka,         #
-# Maciej Wrona, Hubert Wilga, Mateusz Tężyński   #
+# Made by Jakub Koterba                          #
 ##################################################
 
 
