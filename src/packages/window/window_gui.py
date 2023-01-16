@@ -119,7 +119,7 @@ class Window(QMainWindow):
         self.m_PlotData = []
 
         # Repetition amount possible
-        self.m_RepetitionValues = ["1", "2", "3", "4", "5"]
+        self.m_RepetitionValues = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
         self.m_Repeat = int(self.m_RepetitionValues[0])
         self.m_NaiveRoundData = [0, 0, 0]
         self.m_OptimisedRoundData = [0, 0, 0]
@@ -135,6 +135,8 @@ class Window(QMainWindow):
         self.m_Height = 0
 
         self.m_Width = 0
+
+        self.m_ToPlot = False
 
         # Data collector and plotter object
         self.m_DataCollector = DataCollector()
@@ -231,7 +233,12 @@ class Window(QMainWindow):
         self.repetition_amount_combo = QComboBox()
         self.repetition_amount_combo.addItems(self.m_RepetitionValues)
         self.repetition_amount_combo.activated.connect(self.set_repetition)
-        self.repetition_amount_layout.addRow("Times to repeat", self.repetition_amount_combo)
+        self.repetition_amount_layout.addRow("Times to repeat:", self.repetition_amount_combo)
+
+        self.to_plot_combo = QComboBox()
+        self.to_plot_combo.addItems(["no", "yes"])
+        self.to_plot_combo.activated.connect(self.to_plot)
+        self.repetition_amount_layout.addRow("Save plot results:", self.to_plot_combo)
 
         ######################################
         # Runtime info panel layout creation #
@@ -363,6 +370,13 @@ class Window(QMainWindow):
 
         # Starting the thread
         self.m_BackendThread.start()
+
+
+    def to_plot(self, index):
+        if index == 0:
+            self.m_ToPlot = False
+        elif index == 1:
+            self.m_ToPlot = True
 
 
     def set_current_algorithm(self, name=str):
@@ -513,6 +527,7 @@ class Window(QMainWindow):
         self.area_widget.updateAxes()
 
 
+    # Runs the amount of repeated simulations desired
     def run_simulation(self):
         self.m_DataCollector.add_rounds_number(int(self.m_Repeat))
         self.backend.signal_get_current_algorithm.emit()
@@ -521,28 +536,33 @@ class Window(QMainWindow):
             while not self.m_SimulationRoundFinished:
                 self.backend.signal_run_simulation.emit()
 
-            if self.m_CurrentAlgorithm == "naive":
-                self.m_DataCollector.add_naive_round_data(self.m_NaiveRoundData)
-            if self.m_CurrentAlgorithm == "pso":
-                self.m_DataCollector.add_optimised_round_data(self.m_OptimisedRoundData)
+            # If there need to do the plots, adds the data
+            if self.m_ToPlot:
+                if self.m_CurrentAlgorithm == "naive":
+                    self.m_DataCollector.add_naive_round_data(self.m_NaiveRoundData)
+                if self.m_CurrentAlgorithm == "pso":
+                    self.m_DataCollector.add_optimised_round_data(self.m_OptimisedRoundData)
+
+            # Continues with another round
             self.m_SimulationRoundFinished = False
 
-        timestr = time.strftime("%Y%m%d-%H%M%S")
+        if self.m_ToPlot:
+            timestr = time.strftime("%Y%m%d-%H%M%S")
 
-        self.m_DataCollector.set_plot_name(str(self.m_CurrentAlgorithm + "_" 
-        + str(self.m_NodeAmount) + "_" 
-        + str(self.m_Height) + "_" 
-        + str(self.m_Width) + "_" 
-        + str(self.m_Repeat) + "_" +
-        timestr))
+            self.m_DataCollector.set_plot_name(str(self.m_CurrentAlgorithm + "_" 
+            + str(self.m_NodeAmount) + "_" 
+            + str(self.m_Height) + "_" 
+            + str(self.m_Width) + "_" 
+            + str(self.m_Repeat) + "_" +
+            timestr))
 
-        print(self.m_DataCollector.mv_PlotName)
+            print(self.m_DataCollector.mv_PlotName)
 
-        self.m_DataCollector.save_plot()
-        self.m_DataCollector.clear()
+            self.m_DataCollector.save_plot()
+            self.m_DataCollector.clear()
 
-        self.m_NaiveRoundData = [0,0,0]
-        self.m_OptimisedRoundData = [0,0,0]
+            self.m_NaiveRoundData = [0,0,0]
+            self.m_OptimisedRoundData = [0,0,0]
         
 
         

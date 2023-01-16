@@ -71,33 +71,37 @@ class DataCollector():
     def save_plot(self):
         if self.mb_NaiveData:
             if not len(self.ml_NaiveSollutionFND) < 2:
-                plt.plot(self.ml_NaiveSollutionFND)
+                # Setting the labels
                 plt.xlabel('Simulation runs count')
-                plt.ylabel('FND-Naive')
-                plt.savefig("fnd"+self.mv_PlotName)
-                plt.plot(self.ml_NaiveSollutionHND)
-                plt.xlabel('Simulation runs count')
-                plt.ylabel('HND-Naive')
-                plt.savefig("hnd"+self.mv_PlotName)
-                plt.plot(self.ml_NaiveSollutionLND)
-                plt.xlabel('Simulation runs count')
-                plt.ylabel('LND-Naive')
+                plt.ylabel('Rounds')
+
+                # Plotting the data
+                plt.plot(self.ml_NaiveSollutionFND, label="FND")
+                plt.plot(self.ml_NaiveSollutionHND, label="HND")
+                plt.plot(self.ml_NaiveSollutionLND, label="LND")
+
+                # Showing the legend
+                plt.legend()
+
+                # Saving the figure
                 plt.savefig("lnd"+self.mv_PlotName)
 
         elif self.mb_OptimisedData:
             if not len(self.ml_OptimisedSollutionFND) < 2:
-                plt.plot(self.ml_OptimisedSollutionFND)
+                # Setting the labels
                 plt.xlabel('Simulation runs count')
-                plt.ylabel('FND-Optimised')
-                plt.savefig("fnd"+self.mv_PlotName)
-                plt.plot(self.ml_OptimisedSollutionHND)
-                plt.xlabel('Simulation runs count')
-                plt.ylabel('HND-Optimised')
-                plt.savefig("hnd"+self.mv_PlotName)
-                plt.plot(self.ml_OptimisedSollutionLND)
-                plt.xlabel('Simulation runs count')
-                plt.ylabel('LND-Optimised')
-                plt.savefig("lnd"+self.mv_PlotName)
+                plt.ylabel('Rounds')
+
+                # Plotting the data
+                plt.plot(self.ml_OptimisedSollutionFND, label="FND")
+                plt.plot(self.ml_OptimisedSollutionHND, label="HND")
+                plt.plot(self.ml_OptimisedSollutionLND, label="LND")
+
+                # Showing the legend
+                plt.legend()
+
+                # Saving the figure
+                plt.savefig(self.mv_PlotName)
 
 
 
@@ -106,6 +110,7 @@ class DataCollector():
         self.mb_NaiveData = False
 
         self.mv_PlotName = ''
+        plt.cla()
 
         self.ml_NaiveSollutionFND.clear()
         self.ml_NaiveSollutionHND.clear()
