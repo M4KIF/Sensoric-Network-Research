@@ -12,6 +12,7 @@
 ###########
 
 import time
+import matplotlib.pyplot as plt
 
 #####################
 # Object Definition #
@@ -26,38 +27,19 @@ class DataCollector():
         ############################################
 
         # Contains the list of naive algorithm runtimes
-        self.ml_NaiveSollutionTimes = []
+        self.ml_NaiveSollutionFND = []
+        self.ml_NaiveSollutionHND = []
+        self.ml_NaiveSollutionLND = []
 
         # Contains the list of optimised algorithm runtimes
-        self.ml_OptimisedSollutionTimes = []
+        self.ml_OptimisedSollutionFND = []
+        self.ml_OptimisedSollutionHND = []
+        self.ml_OptimisedSollutionLND = []
 
-        ###############################################
-        # Last times of the simulation runs variables #
-        ###############################################
+        self.mv_PlotName = str()
 
-        # Contains the latest result of a naive algorithm wsn simulation
-        self.mv_NaiveLastTime = float(0)
-
-        # Contains the latest result of an optimised wsn simulation
-        self.mv_OptimisedLastTime = float(0)
-
-        #####################
-        # Runtime variables #
-        #####################
-
-        self.mv_MeasureStarted = float
-        self.mv_MeasureEnded = float
-        self.mv_MeasurementResult = float
-
-        ############
-        # Booleans #
-        ############
-
-        # Activated if there is a time measure running currently
-        self.mb_Measuring = False
-
-        # Activated if there is some data after the measurement that hasn't been saved yet
-        self.mb_DataMeasuredNotSaved = False
+        self.mb_NaiveData = False
+        self.mb_OptimisedData = False
 
 
     ##############################
@@ -65,108 +47,70 @@ class DataCollector():
     ##############################
 
 
-    # Returns the value according to the flag
-    def is_ready_to_measure(self):
-        if not (self.mb_Measuring and self.mb_DataMeasuredNotSaved):
-            return True
-        else:
-            return False
+    def add_naive_round_data(self, data):
+        self.mb_NaiveData = True
+        self.ml_NaiveSollutionFND.append(data[0])
+        self.ml_NaiveSollutionHND.append(data[1])
+        self.ml_NaiveSollutionLND.append(data[2])
 
 
-    # Returns the value according to the flag
-    def is_measuring(self):
-        if self.mb_Measuring:
-            return True
-        else:
-            return False
-
-
-    # Returns the value according to the flag
-    def is_there_is_data_to_be_saved(self):
-        if self.mb_DataMeasuredNotSaved:
-            return True
-        else:
-            return False
-
-
-    # Starts the measurement
-    def start_timer(self):
-
-        if not self.mb_Measuring:
-            # Updating the time on the first variable
-            self.mv_MeasureStarted = time.time()
-
-            # Activating the measurement flag
-            self.mb_Measuring = True
-        else:
-            # if the timer can't be started throwning an exception
-            raise Exception("Measurement Running")
+    def add_optimised_round_data(self, data):
+        self.mb_OptimisedData = True
+        self.ml_OptimisedSollutionFND.append(data[0])
+        self.ml_OptimisedSollutionHND.append(data[1])
+        self.ml_OptimisedSollutionLND.append(data[2])
 
     
-    # Ends the measurement
-    def end_timer(self):
-        if self.mb_Measuring:
-
-            # Updating the measurement end time
-            self.mv_MeasureEnded = time.time()
-
-            # Calculating the result
-            self.mv_MeasurementResult = self.mv_MeasureEnded - self.mv_MeasureStarted
-
-            # Deactivating the measurement flag
-            self.mb_Measuring = False
-            self.mb_DataMeasuredNotSaved = True
+    def add_rounds_number(self, amount):
+        self.mv_Rounds = amount
 
 
-    # Saves the result to the naive parameters
-    def save_result_as_naive(self):
+    def set_plot_name(self, name):
+        self.mv_PlotName = name
 
-        if self.mb_DataMeasuredNotSaved:
-            # Saving to the naive variable
-            self.mv_NaiveLastTime = self.mv_MeasurementResult
+    def save_plot(self):
+        if self.mb_NaiveData:
+            if not len(self.ml_NaiveSollutionFND) < 2:
+                plt.plot(self.ml_NaiveSollutionFND)
+                plt.xlabel('Simulation runs count')
+                plt.ylabel('FND-Naive')
+                plt.savefig("fnd"+self.mv_PlotName)
+                plt.plot(self.ml_NaiveSollutionHND)
+                plt.xlabel('Simulation runs count')
+                plt.ylabel('HND-Naive')
+                plt.savefig("hnd"+self.mv_PlotName)
+                plt.plot(self.ml_NaiveSollutionLND)
+                plt.xlabel('Simulation runs count')
+                plt.ylabel('LND-Naive')
+                plt.savefig("lnd"+self.mv_PlotName)
 
-            # Appending the results list
-            self.ml_NaiveSollutionTimes.append(self.mv_NaiveLastTime)
-
-            self.mb_DataMeasuredNotSaved = False
-        else:
-            raise Exception("There is nothing to be saved")
-
-
-    # Saves the results to the optimised parameters
-    def save_result_as_optimised(self):
-
-        if self.mb_DataMeasuredNotSaved:
-            # Saving to the naive variable
-            self.mv_OptimisedLastTime = self.mv_MeasurementResult
-
-            # Appending the results list
-            self.ml_OptimisedSollutionTimes.append(self.mv_OptimisedLastTime)
-
-            self.mb_DataMeasuredNotSaved = False
-        else:
-            raise Exception("There is nothing to be saved")
-
-
-    # Calculates the mean from the list of times for the naive sollution
-    def calculate_mean_from_naive_times(self):
-
-        if len(self.ml_NaiveSollutionTimes) != 0:
-            result = 0
-            for time in self.ml_NaiveSollutionTimes:
-                result+=time
-            return result / len(self.ml_NaiveSollutionTimes)
-        else:
-            raise Exception("Not enough results in the list")
+        elif self.mb_OptimisedData:
+            if not len(self.ml_OptimisedSollutionFND) < 2:
+                plt.plot(self.ml_OptimisedSollutionFND)
+                plt.xlabel('Simulation runs count')
+                plt.ylabel('FND-Optimised')
+                plt.savefig("fnd"+self.mv_PlotName)
+                plt.plot(self.ml_OptimisedSollutionHND)
+                plt.xlabel('Simulation runs count')
+                plt.ylabel('HND-Optimised')
+                plt.savefig("hnd"+self.mv_PlotName)
+                plt.plot(self.ml_OptimisedSollutionLND)
+                plt.xlabel('Simulation runs count')
+                plt.ylabel('LND-Optimised')
+                plt.savefig("lnd"+self.mv_PlotName)
 
 
-    # Calculates the mean from the list of times for the optimised sollution
-    def calculate_mean_from_optimised_times(self):
 
-        if len(self.ml_OptimisedSollutionTimes) != 0:
-            result = 0
-            for time in self.ml_OptimisedSollutionTimes:
-                result+=time
-            return result / len(self.ml_OptimisedSollutionTimes)
-        else:
-            raise Exception("Not enough results in the list")
+    def clear(self):
+        self.mb_OptimisedData = False
+        self.mb_NaiveData = False
+
+        self.mv_PlotName = ''
+
+        self.ml_NaiveSollutionFND.clear()
+        self.ml_NaiveSollutionHND.clear()
+        self.ml_NaiveSollutionLND.clear()
+
+        self.ml_OptimisedSollutionFND.clear()
+        self.ml_OptimisedSollutionHND.clear()
+        self.ml_OptimisedSollutionLND.clear()

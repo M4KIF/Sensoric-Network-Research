@@ -215,25 +215,27 @@ class SensoricNetwork(QObject):
     signal_get_plot_data = pyqtSignal()
 
     # Data sending signals
-    signal_send_active_nodes = pyqtSignal(str)
+    signal_send_active_nodes = pyqtSignal(int)
 
-    signal_send_fnd_naive = pyqtSignal(str)
+    signal_send_fnd_naive = pyqtSignal(int)
     
-    signal_send_hnd_naive = pyqtSignal(str)
+    signal_send_hnd_naive = pyqtSignal(int)
 
-    signal_send_lnd_naive = pyqtSignal(str)
+    signal_send_lnd_naive = pyqtSignal(int)
 
-    signal_send_fnd_optimised = pyqtSignal(str)
+    signal_send_fnd_optimised = pyqtSignal(int)
 
-    signal_send_hnd_optimised = pyqtSignal(str)
+    signal_send_hnd_optimised = pyqtSignal(int)
 
-    signal_send_lnd_optimised = pyqtSignal(str)
+    signal_send_lnd_optimised = pyqtSignal(int)
 
-    signal_send_height = pyqtSignal(str)
+    signal_send_simulation_finished = pyqtSignal(bool)
 
-    signal_send_width = pyqtSignal(str)
+    signal_send_height = pyqtSignal(int)
 
-    signal_send_node_amount = pyqtSignal(str)
+    signal_send_width = pyqtSignal(int)
+
+    signal_send_node_amount = pyqtSignal(int)
 
     signal_send_node_battery_capacity = pyqtSignal(str)
 
@@ -485,12 +487,12 @@ class SensoricNetwork(QObject):
         
         self.initiate_network()
 
-        self.signal_send_fnd_naive.emit(str(0))
-        self.signal_send_hnd_naive.emit(str(0))
-        self.signal_send_lnd_naive.emit(str(0))
-        self.signal_send_fnd_optimised.emit(str(0))
-        self.signal_send_hnd_optimised.emit(str(0))
-        self.signal_send_lnd_optimised.emit(str(0))
+        self.signal_send_fnd_naive.emit(0)
+        self.signal_send_hnd_naive.emit(0)
+        self.signal_send_lnd_naive.emit(0)
+        self.signal_send_fnd_optimised.emit(0)
+        self.signal_send_hnd_optimised.emit(0)
+        self.signal_send_lnd_optimised.emit(0)
 
         self.calculate_plot_data()
 
@@ -526,12 +528,12 @@ class SensoricNetwork(QObject):
         
         self.initiate_network()
 
-        self.signal_send_fnd_naive.emit(str(0))
-        self.signal_send_hnd_naive.emit(str(0))
-        self.signal_send_lnd_naive.emit(str(0))
-        self.signal_send_fnd_optimised.emit(str(0))
-        self.signal_send_hnd_optimised.emit(str(0))
-        self.signal_send_lnd_optimised.emit(str(0))
+        self.signal_send_fnd_naive.emit(0)
+        self.signal_send_hnd_naive.emit(0)
+        self.signal_send_lnd_naive.emit(0)
+        self.signal_send_fnd_optimised.emit(0)
+        self.signal_send_hnd_optimised.emit(0)
+        self.signal_send_lnd_optimised.emit(0)
 
         self.calculate_plot_data()
 
@@ -596,12 +598,12 @@ class SensoricNetwork(QObject):
         
         self.initiate_network()
 
-        self.signal_send_fnd_naive.emit(str(0))
-        self.signal_send_hnd_naive.emit(str(0))
-        self.signal_send_lnd_naive.emit(str(0))
-        self.signal_send_fnd_optimised.emit(str(0))
-        self.signal_send_hnd_optimised.emit(str(0))
-        self.signal_send_lnd_optimised.emit(str(0))
+        self.signal_send_fnd_naive.emit(0)
+        self.signal_send_hnd_naive.emit(0)
+        self.signal_send_lnd_naive.emit(0)
+        self.signal_send_fnd_optimised.emit(0)
+        self.signal_send_hnd_optimised.emit(0)
+        self.signal_send_lnd_optimised.emit(0)
 
         self.calculate_plot_data()
 
@@ -646,19 +648,19 @@ class SensoricNetwork(QObject):
 
     #
     def get_height(self):
-        self.signal_send_height.emit(str(self.mv_Height))
+        self.signal_send_height.emit(self.mv_Height)
         #return str(self.mv_Height)
 
 
     #
     def get_width(self):
-        self.signal_send_width.emit(str(self.mv_Width))
+        self.signal_send_width.emit(self.mv_Width)
         #return str(self.mv_Width)
 
 
     #
     def get_node_amount(self):
-        self.signal_send_node_amount.emit(str(self.mv_NodeAmount))
+        self.signal_send_node_amount.emit(self.mv_NodeAmount)
         #return str(self.mv_NodeAmount)
 
 
@@ -918,7 +920,7 @@ class SensoricNetwork(QObject):
                         self.mutex.lock()
                         self.mv_FND = self.mv_LND
                         self.mutex.unlock()
-                        self.signal_send_fnd_naive.emit(str(self.mv_LND))
+                        self.signal_send_fnd_naive.emit(self.mv_LND)
                         self.mutex.lock()
                         self.mb_FirstNodeDied = True
                         self.mutex.unlock()
@@ -927,21 +929,18 @@ class SensoricNetwork(QObject):
                         self.mutex.lock()
                         self.mv_HND = self.mv_LND
                         self.mutex.unlock()
-                        self.signal_send_hnd_naive.emit(str(self.mv_LND))
+                        self.signal_send_hnd_naive.emit(self.mv_LND)
                         self.mutex.lock()
                         self.mb_HalfNodesDies = True
                         self.mutex.unlock()
                     self.calculate_plot_data()
 
-            self.signal_send_active_nodes.emit(str(self.mv_ActiveNodes))
-            self.mutex.lock()
+            self.signal_send_active_nodes.emit(self.mv_ActiveNodes)
             self.mv_LND += 1
-            self.mutex.unlock()
 
-        self.signal_send_lnd_naive.emit(str(self.mv_LND))
-        self.mutex.lock()
+        self.signal_send_lnd_naive.emit(self.mv_LND)
         self.mb_LastNodeDied = True
-        self.mutex.unlock()
+        self.signal_send_simulation_finished.emit(True)
         self.cleanup_after_simulation()
 
             
@@ -1576,17 +1575,17 @@ class SensoricNetwork(QObject):
                     # Checking for the algorithm statistics
                     if not self.mb_FirstNodeDied and self.mv_ActiveNodes == (self.mv_NodeAmount-1):
                         self.mv_FND = self.mv_LND
-                        self.signal_send_fnd_optimised.emit(str(self.mv_LND))
+                        self.signal_send_fnd_optimised.emit(self.mv_LND)
                         self.mb_FirstNodeDied = True
                     
                     if not self.mb_HalfNodesDies and self.mv_ActiveNodes < self.mv_NodeAmount - (self.mv_NodeAmount - (int(float(self.mv_MinimumCoverage/100)*float(self.mv_NodeAmount))))/2:
                         self.mv_HND = self.mv_LND
-                        self.signal_send_hnd_optimised.emit(str(self.mv_LND))
+                        self.signal_send_hnd_optimised.emit(self.mv_LND)
                         self.mb_HalfNodesDies = True
 
                     self.calculate_plot_data()
 
-            self.signal_send_active_nodes.emit(str(self.mv_ActiveNodes))
+            self.signal_send_active_nodes.emit(self.mv_ActiveNodes)
             print(self.mv_LND)
             print(self.mv_ActiveNodes)
             self.mv_LND += 1
@@ -1594,7 +1593,8 @@ class SensoricNetwork(QObject):
         ########################################
 
         self.mb_LastNodeDied = True
-        self.signal_send_lnd_optimised.emit(str(self.mv_LND))
+        self.signal_send_lnd_optimised.emit(self.mv_LND)
+        self.signal_send_simulation_finished.emit(True)
         self.cleanup_after_simulation()
     
 

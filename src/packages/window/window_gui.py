@@ -15,6 +15,9 @@
 # Elements for running the simulation
 from ..backend import wsn as network
 
+# 
+from ..backend.misc import DataCollector
+
 # Qt backend
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -26,6 +29,8 @@ from matplotlib.figure import Figure
 
 # Arrays
 import numpy as np
+
+import time
 
 # Default modules
 from copy import copy
@@ -112,6 +117,27 @@ class Window(QMainWindow):
 
         # Plot data
         self.m_PlotData = []
+
+        # Repetition amount possible
+        self.m_RepetitionValues = ["1", "2", "3", "4", "5"]
+        self.m_Repeat = int(self.m_RepetitionValues[0])
+        self.m_NaiveRoundData = [0, 0, 0]
+        self.m_OptimisedRoundData = [0, 0, 0]
+
+        self.m_ActiveNodes = 0
+
+        self.m_SimulationRoundFinished = False
+
+        self.m_CurrentAlgorithm = str()
+
+        self.m_NodeAmount = 0
+
+        self.m_Height = 0
+
+        self.m_Width = 0
+
+        # Data collector and plotter object
+        self.m_DataCollector = DataCollector()
 
         # The backend, that the window will visualise
         self.backend = network.SensoricNetwork(node_amount=50, battery_capacity=1, width=200, height=200)
@@ -200,6 +226,13 @@ class Window(QMainWindow):
         self.node_settings_layout.addRow("Nodes Amount:", self.nodes_amount_box)
         self.node_settings_layout.addRow("Battery capacity:", self.nodes_battery_capacity_box)
 
+        # Repetition amount layout
+        self.repetition_amount_layout = QFormLayout()
+        self.repetition_amount_combo = QComboBox()
+        self.repetition_amount_combo.addItems(self.m_RepetitionValues)
+        self.repetition_amount_combo.activated.connect(self.set_repetition)
+        self.repetition_amount_layout.addRow("Times to repeat", self.repetition_amount_combo)
+
         ######################################
         # Runtime info panel layout creation #
         ######################################
@@ -268,6 +301,7 @@ class Window(QMainWindow):
         self.settingsLayout.addLayout(self.algorithm_layout)
         self.settingsLayout.addLayout(self.area_dimensions_layout)
         self.settingsLayout.addLayout(self.node_settings_layout)
+        self.settingsLayout.addLayout(self.repetition_amount_layout)
         self.settingsLayout.addLayout(self.runtime_info_layout)
         self.settingsLayout.addWidget(self.run_simulation_button)
 
@@ -290,21 +324,23 @@ class Window(QMainWindow):
         ######################
 
         self.backend.signal_send_algorithms_list.connect(self.select_algorithm_combo.addItems)
-        self.backend.signal_send_height.connect(self.select_height_box.setText)
-        self.backend.signal_send_width.connect(self.select_width_box.setText)
+        self.backend.signal_send_current_algorithm.connect(self.set_current_algorithm)
+        self.backend.signal_send_height.connect(self.set_local_height)
+        self.backend.signal_send_width.connect(self.set_local_width)
         self.backend.signal_send_minimum_coverage.connect(self.select_minimal_area_coverage_box.setText)
-        self.backend.signal_send_node_amount.connect(self.nodes_amount_box.setText)
+        self.backend.signal_send_node_amount.connect(self.set_node_amount)
         self.backend.signal_send_node_battery_capacity.connect(self.nodes_battery_capacity_box.setText)
 
         self.backend.signal_update_plot.connect(self.draw_plot)
 
-        self.backend.signal_send_fnd_naive.connect(self.naive_fnd.setText)
-        self.backend.signal_send_hnd_naive.connect(self.naive_hnd.setText)
-        self.backend.signal_send_lnd_naive.connect(self.naive_lnd.setText)
-        self.backend.signal_send_fnd_optimised.connect(self.optimised_fnd.setText)
-        self.backend.signal_send_hnd_optimised.connect(self.optimised_hnd.setText)
-        self.backend.signal_send_lnd_optimised.connect(self.optimised_lnd.setText)
-        self.backend.signal_send_active_nodes.connect(self.active_nodes.setText)
+        self.backend.signal_send_fnd_naive.connect(self.set_fnd_naive)
+        self.backend.signal_send_hnd_naive.connect(self.set_hnd_naive)
+        self.backend.signal_send_lnd_naive.connect(self.set_lnd_naive)
+        self.backend.signal_send_fnd_optimised.connect(self.set_fnd_optimised)
+        self.backend.signal_send_hnd_optimised.connect(self.set_hnd_optimised)
+        self.backend.signal_send_lnd_optimised.connect(self.set_lnd_optimised)
+        self.backend.signal_send_simulation_finished.connect(self.set_simulation_finished)
+        self.backend.signal_send_active_nodes.connect(self.set_active_nodes)
 
         ####################################
         # Emitting signals to get the data #
@@ -329,6 +365,76 @@ class Window(QMainWindow):
         self.m_BackendThread.start()
 
 
+    def set_current_algorithm(self, name=str):
+        if self.backend.mutex.tryLock():
+            self.m_CurrentAlgorithm = name
+        self.backend.mutex.unlock()
+
+
+    def set_node_amount(self, name=int):
+        if self.backend.mutex.tryLock():
+            self.m_NodeAmount = name
+        self.backend.mutex.unlock()
+        self.nodes_amount_box.setText(str(self.m_NodeAmount))
+
+    def set_fnd_naive(self, value=int):
+        if self.backend.mutex.tryLock():
+            self.m_NaiveRoundData[0] = value
+        self.backend.mutex.unlock()
+        self.naive_fnd.setText(str(self.m_NaiveRoundData[0]))
+
+
+    def set_hnd_naive(self, value=int):
+        if self.backend.mutex.tryLock():
+            self.m_NaiveRoundData[1] = copy(value)
+        self.backend.mutex.unlock()
+        self.naive_hnd.setText(str(self.m_NaiveRoundData[1]))
+
+
+    def set_lnd_naive(self, value=int):
+        if self.backend.mutex.tryLock():
+            self.m_NaiveRoundData[2] = copy(value)
+        self.backend.mutex.unlock()
+        self.naive_lnd.setText(str(self.m_NaiveRoundData[2]))
+
+
+    def set_fnd_optimised(self, value=int):
+        if self.backend.mutex.tryLock():
+            self.m_OptimisedRoundData[0] = copy(value)
+        self.backend.mutex.unlock()
+        self.optimised_fnd.setText(str(self.m_OptimisedRoundData[0]))
+
+    def set_hnd_optimised(self, value=int):
+        if self.backend.mutex.tryLock():
+            self.m_OptimisedRoundData[1] = copy(value)
+        self.backend.mutex.unlock()
+        self.optimised_hnd.setText(str(self.m_OptimisedRoundData[1]))
+
+
+    def set_lnd_optimised(self, value=int):
+        if self.backend.mutex.tryLock():
+            self.m_OptimisedRoundData[2] = copy(value)
+        self.backend.mutex.unlock()
+        self.optimised_lnd.setText(str(self.m_OptimisedRoundData[2]))
+
+
+    def set_simulation_finished(self, value=bool):
+        if self.backend.mutex.tryLock():
+            self.m_SimulationRoundFinished = copy(value)
+        self.backend.mutex.unlock()
+
+
+    def set_active_nodes(self, value=int):
+        if self.backend.mutex.tryLock():
+            self.m_ActiveNodes = value
+        self.backend.mutex.unlock()
+        self.active_nodes.setText(str(self.m_ActiveNodes))
+
+
+    def set_repetition(self, index=int):
+        self.m_Repeat = int(self.m_RepetitionValues[index])
+
+
 
     def set_algorithm(self, index=int):
         self.backend.signal_set_algorithm.emit(index)
@@ -343,6 +449,11 @@ class Window(QMainWindow):
                 self.backend.signal_set_height.emit(int(height))
                 self.backend.signal_get_height.emit()
 
+    def set_local_height(self, height=int):
+        if self.backend.mutex.tryLock():
+            self.m_Height = copy(height)
+        self.backend.mutex.unlock()
+        self.select_height_box.setText(str(self.m_Height))
 
     def set_width(self, width=str):
 
@@ -352,6 +463,11 @@ class Window(QMainWindow):
                 self.backend.signal_set_width.emit(int(width))
                 self.backend.signal_get_width.emit()
 
+    def set_local_width(self, width=int):
+        if self.backend.mutex.tryLock():
+            self.m_Width = copy(width)
+        self.backend.mutex.unlock()
+        self.select_width_box.setText(str(self.m_Width))
 
     def set_minimal_coverage(self, coverage=str):
 
@@ -398,7 +514,35 @@ class Window(QMainWindow):
 
 
     def run_simulation(self):
-        self.backend.signal_run_simulation.emit()
+        self.m_DataCollector.add_rounds_number(int(self.m_Repeat))
+        self.backend.signal_get_current_algorithm.emit()
+
+        for amount in range(self.m_Repeat):
+            while not self.m_SimulationRoundFinished:
+                self.backend.signal_run_simulation.emit()
+
+            if self.m_CurrentAlgorithm == "naive":
+                self.m_DataCollector.add_naive_round_data(self.m_NaiveRoundData)
+            if self.m_CurrentAlgorithm == "pso":
+                self.m_DataCollector.add_optimised_round_data(self.m_OptimisedRoundData)
+            self.m_SimulationRoundFinished = False
+
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+
+        self.m_DataCollector.set_plot_name(str(self.m_CurrentAlgorithm + "_" 
+        + str(self.m_NodeAmount) + "_" 
+        + str(self.m_Height) + "_" 
+        + str(self.m_Width) + "_" 
+        + str(self.m_Repeat) + "_" +
+        timestr))
+
+        print(self.m_DataCollector.mv_PlotName)
+
+        self.m_DataCollector.save_plot()
+        self.m_DataCollector.clear()
+
+        self.m_NaiveRoundData = [0,0,0]
+        self.m_OptimisedRoundData = [0,0,0]
         
 
         
