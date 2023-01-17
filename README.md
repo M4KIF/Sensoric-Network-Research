@@ -3,7 +3,7 @@
 ##############################
 
 This app emulates the functioning of a wireless sensor network. It implements the simplified network connection model 
-and simplified energy consumption model. Which are described in the technical document available in the \docs.
+and simplified energy consumption model. Which are described in the technical document available in the src\docs.
 
 It enables the user to change any important parameter of the wsn. The likes of network area, nodes amount, minimal coverage,
 as also the amount of simulation runs to execute.
