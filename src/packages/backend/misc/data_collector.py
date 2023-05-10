@@ -84,7 +84,7 @@ class DataCollector():
                 plt.legend()
 
                 # Saving the figure
-                plt.savefig("lnd"+self.mv_PlotName)
+                plt.savefig("lnd_runtime_details"+self.mv_PlotName)
 
                 print("Top-bottom == FND - LND")
                 print(self.ml_NaiveSollutionFND)
@@ -106,7 +106,7 @@ class DataCollector():
                 plt.legend()
 
                 # Saving the figure
-                plt.savefig(self.mv_PlotName)
+                plt.savefig("lnd_runtime_details" + self.mv_PlotName)
 
                 # Printing the data to the console
                 print("Top-bottom == FND - LND")

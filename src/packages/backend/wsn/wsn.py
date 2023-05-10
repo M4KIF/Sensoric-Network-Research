@@ -220,6 +220,12 @@ class SensoricNetwork(QObject):
 
     signal_send_lnd_optimised = pyqtSignal(int)
 
+    #
+    # TODO: Implement it to enable creation of a coverage plot, with an optional "Compare coverage menu option"
+    #
+
+    signal_send_coverage_delta_data = pyqtSignal(tuple)
+
     signal_send_simulation_finished = pyqtSignal(bool)
 
     signal_send_height = pyqtSignal(int)
@@ -434,7 +440,7 @@ class SensoricNetwork(QObject):
         self.mb_HalfNodesDies = False
         self.mb_LastNodeDied = False
 
-        # Emitting the signals to the main app
+        # Emitting the si_runtime_detailsgnals to the main app
         self.signal_send_algorithms_list.emit(self.ml_Algorithms)
 
 
@@ -908,6 +914,14 @@ class SensoricNetwork(QObject):
                 if node.get_battery_level() < 1 and node.is_active():
                     node.deactivate()
                     self.mv_ActiveNodes-=1
+
+                    #
+                    # TODO: Add the code responsible for creating the coverage plot
+                    #
+
+                    # Those two values have to be used in order to create said plot
+                    self.mv_ActiveNodes
+                    self.mv_LND
 
                     if not self.mb_FirstNodeDied and self.mv_ActiveNodes == (self.mv_NodeAmount-1):
                         self.mutex.lock()
@@ -1522,6 +1536,13 @@ class SensoricNetwork(QObject):
                     node.activate_battery_low_flag()
                     node.deactivate()
                     self.mv_ActiveNodes-=1
+
+                    #
+                    # TODO: Those two will be used to create the second plot
+                    #
+
+                    self.mv_CurrentCoverage
+                    self.mv_LND
 
                     # Checking for the algorithm statistics
                     if not self.mb_FirstNodeDied and self.mv_ActiveNodes == (self.mv_NodeAmount-1):
