@@ -14,6 +14,14 @@ from ..backend import wsn as network
 #
 from ..backend.misc import DataCollector
 
+#
+# Default imports
+#
+
+import time
+
+from copy import copy
+
 # Qt backend
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -28,11 +36,6 @@ from matplotlib.figure import Figure
 
 # Arrays
 import numpy as np
-
-import time
-
-# Default modules
-from copy import copy
 
 
 class PlotCanvas(FigureCanvasQTAgg):
@@ -702,8 +705,14 @@ class Window(QMainWindow):
 
         for amount in range(self.m_Repeat):
             if not self.m_ToCompareCoverage and not self.m_ToCompareRuntimeStats:
+
+                self.backend.signal_run_simulation.emit()
+
                 while not self.m_SimulationRoundFinished:
-                    self.backend.signal_run_simulation.emit()
+                    sleep(0.15)
+                    print("Attempted an update")
+                    self.backend.calculate_plot_data().emit()
+                    sleep(0.15)
 
                 if self.m_ToPlot:
                     if self.m_CurrentAlgorithm == "naive":
@@ -733,14 +742,18 @@ class Window(QMainWindow):
                     for i in range(self.select_algorithm_combo.count())
                 ]
 
-                for index in range(len(algorithms)):
+                for index in enumerate(algorithms):
                     self.set_algorithm(index)
+                    
+                    self.backend.signal_run_simulation.emit()
 
                     while not self.m_SimulationRoundFinished:
-                        self.backend.signal_run_simulation.emit()
+                        sleep(0.15)
+                        self.backend.calculate_plot_data().emit()
+                        sleep(0.15)
 
                     # Continues with another round
-                    self.m_SimulationRoundFinished = False
+                    self.m_SimulationRoundFinished = True
 
                     if algorithms[index] == "naive":
                         self.m_DataCollector.add_naive_round_data(self.m_NaiveRoundData)
