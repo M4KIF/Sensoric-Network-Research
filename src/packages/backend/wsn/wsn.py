@@ -386,7 +386,7 @@ class SensoricNetwork(QObject):
         #################
 
         # Max iterations of the PSO algorithm, should be 2500
-        self.mv_MaxIteration = 2000
+        self.mv_MaxIteration = 2500
 
         # Currently used algorithm
         self.mv_CurrentAlgorithm = self.ml_Algorithms[0]
@@ -1063,7 +1063,7 @@ class SensoricNetwork(QObject):
             r2 = uniform(0, 1)
 
         # Calculating the inertia value
-        w = w_max - (w_max - w_min) / self.mv_MaxIteration * iteration
+        w = w_max - (w_max - w_min) / (self.mv_MaxIteration/100) * iteration
 
         velocity_x = (
             w * particle.get_x_velocity()

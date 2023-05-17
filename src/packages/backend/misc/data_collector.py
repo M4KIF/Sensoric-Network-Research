@@ -141,11 +141,12 @@ class DataCollector:
         return iterations_mean
 
     def save_separate_plot(self):
-        # Setting the labels
-        plt.xlabel("Simulation runs count")
-        plt.ylabel("Rounds")
 
         if self.mb_NaiveRuntimeDataAquired:
+            # Setting the labels
+            plt.xlabel("Simulation runs count")
+            plt.ylabel("Rounds")
+
             # Plotting the runtime data
             plt.plot(self.ml_NaiveSollutionFND, label="FND")
             plt.plot(self.ml_NaiveSollutionHND, label="HND")
@@ -159,6 +160,10 @@ class DataCollector:
             plt.cla()
 
         if self.mb_PsoRuntimeDataAquired:
+            # Setting the labels
+            plt.xlabel("Simulation runs count")
+            plt.ylabel("Rounds")
+
             # Plotting the data
             plt.plot(self.ml_OptimisedSollutionFND, label="FND")
             plt.plot(self.ml_OptimisedSollutionHND, label="HND")
@@ -172,11 +177,11 @@ class DataCollector:
 
             plt.cla()
 
-        # Adding appropriate labels to the plot
-        plt.xlabel("Algorithm Iterations")
-        plt.ylabel("Coverage")
-
         if self.mb_NaiveCoverageDataAquired:
+            # Adding appropriate labels to the plot
+            plt.xlabel("Algorithm Iterations")
+            plt.ylabel("Coverage")
+
             # Calculating the data out of the runs
             mean = self.calculate_naive_coverage_mean()
 
@@ -195,6 +200,10 @@ class DataCollector:
             plt.cla()
 
         if self.mb_PsoCoverageDataAquired:
+            # Adding appropriate labels to the plot
+            plt.xlabel("Algorithm Iterations")
+            plt.ylabel("Coverage")
+
             # I should take a median out of the data
             mean = self.calculate_pso_coverage_mean()
 
