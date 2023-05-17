@@ -742,7 +742,7 @@ class Window(QMainWindow):
                     for i in range(self.select_algorithm_combo.count())
                 ]
 
-                for index in enumerate(algorithms):
+                for index in range(len(algorithms)):
                     self.set_algorithm(index)
                     
                     self.backend.signal_run_simulation.emit()
