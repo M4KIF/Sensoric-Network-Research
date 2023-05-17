@@ -1063,7 +1063,7 @@ class SensoricNetwork(QObject):
             r2 = uniform(0, 1)
 
         # Calculating the inertia value
-        w = w_max - (w_max - w_min) / (self.mv_MaxIteration/100) * iteration
+        w = w_max - (w_max - w_min) / (self.mv_MaxIteration/10) * iteration
 
         velocity_x = (
             w * particle.get_x_velocity()
