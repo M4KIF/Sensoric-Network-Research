@@ -38,7 +38,7 @@ from matplotlib.figure import Figure
 import numpy as np
 
 
-class PlotCanvas(FigureCanvasQTAgg):
+class Canvas(FigureCanvasQTAgg):
     def __init__(self, parent=None, width=8, height=2, dpi=100):
         #################
         # Boolean flags #
@@ -61,7 +61,7 @@ class PlotCanvas(FigureCanvasQTAgg):
         #########
 
         # Calling the constructor of the base class
-        super(PlotCanvas, self).__init__(self.m_Figure)
+        super(Canvas, self).__init__(self.m_Figure)
 
         # Changing the layout to tight
         self.m_Figure.tight_layout()
@@ -160,7 +160,7 @@ class Window(QMainWindow):
 
         # The plot layout, to which I will add an matplotlib widget
         self.plotLayout = QGridLayout()
-        self.area_widget = PlotCanvas(self, width=8, height=7, dpi=120)
+        self.area_widget = Canvas(self, width=8, height=7, dpi=120)
         self.area_widget.addSinglePlot()
         self.plotLayout.addWidget(self.area_widget)
 
@@ -185,7 +185,7 @@ class Window(QMainWindow):
         self.select_algorithm_combo.activated.connect(self.set_algorithm)
 
         # Adding a row with and action
-        self.algorithm_layout.addRow("Algorithm:", self.select_algorithm_combo)
+        self.algorithm_layout.addRow("Algorytm:", self.select_algorithm_combo)
 
         #######################################
         # Area settings panel layout creation #
@@ -218,10 +218,10 @@ class Window(QMainWindow):
         )
 
         # Adding the boxes to the layout
-        self.area_dimensions_layout.addRow("Area height:", self.select_height_box)
-        self.area_dimensions_layout.addRow("Area width:", self.select_width_box)
+        self.area_dimensions_layout.addRow("Wysokość:", self.select_height_box)
+        self.area_dimensions_layout.addRow("Szerokość:", self.select_width_box)
         self.area_dimensions_layout.addRow(
-            "Minimal coverage:", self.select_minimal_area_coverage_box
+            "Minimalne pokrycie:", self.select_minimal_area_coverage_box
         )
 
         #######################################
@@ -248,9 +248,9 @@ class Window(QMainWindow):
         )
 
         # Adding the node settings boxes to the layout
-        self.node_settings_layout.addRow("Nodes Amount:", self.nodes_amount_box)
+        self.node_settings_layout.addRow("Ilość sensorów:", self.nodes_amount_box)
         self.node_settings_layout.addRow(
-            "Battery capacity:", self.nodes_battery_capacity_box
+            "Pojemność baterii:", self.nodes_battery_capacity_box
         )
 
         # Repetition amount layout
@@ -259,17 +259,17 @@ class Window(QMainWindow):
         self.repetition_amount_combo.addItems(self.m_RepetitionValues)
         self.repetition_amount_combo.activated.connect(self.set_repetition)
         self.repetition_amount_layout.addRow(
-            "Times to repeat:", self.repetition_amount_combo
+            "Ilość powtórzeń:", self.repetition_amount_combo
         )
 
         self.to_plot_combo = QCheckBox()
         self.to_plot_combo.toggled.connect(self.to_plot)
-        self.repetition_amount_layout.addRow("Save plot results:", self.to_plot_combo)
+        self.repetition_amount_layout.addRow("Zapisz wykresy:", self.to_plot_combo)
 
         self.to_compare_coverage_checkbox = QCheckBox()
         self.to_compare_coverage_checkbox.toggled.connect(self.to_compare_coverage)
         self.repetition_amount_layout.addRow(
-            "Compare coverage on one plot:", self.to_compare_coverage_checkbox
+            "Porównaj wykresy pokrycia:", self.to_compare_coverage_checkbox
         )
 
         self.to_compare_runtime_stats_checkbox = QCheckBox()
@@ -277,7 +277,7 @@ class Window(QMainWindow):
             self.to_compare_runtime_stats
         )
         self.repetition_amount_layout.addRow(
-            "Compare runtime stats on one plot:", self.to_compare_runtime_stats_checkbox
+            "Porównaj wykresy przebiegu:", self.to_compare_runtime_stats_checkbox
         )
 
         # Safety connects
@@ -345,7 +345,7 @@ class Window(QMainWindow):
 
         # Displays the naive alg. times label
         self.naive_label = QLabel()
-        self.naive_label.setText("Naive algorithm times:")
+        self.naive_label.setText("Ilość iteracji algorytmu naiwnego:")
 
         # Displays the naive average run times
         self.naive_fnd = QLabel()
@@ -361,7 +361,7 @@ class Window(QMainWindow):
 
         # Displays the pso alg. times label
         self.pso_label = QLabel()
-        self.pso_label.setText("pso algorithm times:")
+        self.pso_label.setText("Ilość iteracji algorytmu PSO:")
 
         # Displays the pso average run times
         self.pso_fnd = QLabel()
@@ -376,7 +376,7 @@ class Window(QMainWindow):
         self.pso_lnd.setText("0")
 
         self.active_nodes_amount_label = QLabel()
-        self.active_nodes_amount_label.setText("Currently active nodes")
+        self.active_nodes_amount_label.setText("Ilość pozostałych sensoróœ")
 
         self.active_nodes = QLabel()
 
@@ -390,7 +390,7 @@ class Window(QMainWindow):
         self.runtime_info_layout.addRow("HND:", self.pso_hnd)
         self.runtime_info_layout.addRow("LND:", self.pso_lnd)
         self.runtime_info_layout.addWidget(self.active_nodes_amount_label)
-        self.runtime_info_layout.addRow("Active Nodes:", self.active_nodes)
+        self.runtime_info_layout.addRow("Aktywne sensory:", self.active_nodes)
 
         #######################################################
         # Adding created layouts to the outer settings layout #
@@ -399,7 +399,7 @@ class Window(QMainWindow):
         # Adding the final "run" button to the layout
         self.run_simulation_button = QPushButton()
         self.run_simulation_button.clicked.connect(self.run_simulation)
-        self.run_simulation_button.setText("Simulate!")
+        self.run_simulation_button.setText("Uruchom symulację!")
 
         self.settingsLayout.addLayout(self.algorithm_layout)
         self.settingsLayout.addLayout(self.area_dimensions_layout)
@@ -494,6 +494,7 @@ class Window(QMainWindow):
         if index == 0:
             self.m_ToPlot = False
         elif index == 1:
+            self.m_ToPlot = True
             if self.m_Repeat < 2:
                 self.select_algorithm_combo.setEnabled(True)
                 self.select_height_box.setEnabled(True)
@@ -509,14 +510,12 @@ class Window(QMainWindow):
                 self.to_compare_runtime_stats_checkbox.setChecked(False)
 
                 msg = QMessageBox()
-                msg.setText("Double check the parameteres!")
+                msg.setText("Sprawdź parametry!")
                 msg.setInformativeText(
-                    "Can't compare while there are less than 2 runtime, the runtime data can be seen in console"
+                    "Nie można utworzyć wykresu porównawczego, jeżeli wykonano symulację mniej niż 2 razy!"
                 )
-                msg.setWindowTitle("Remember!")
+                msg.setWindowTitle("Uwaga!")
                 msg.exec()
-
-            self.m_ToPlot = True
 
     def to_compare_coverage(self, index):
         if index == 0:
@@ -703,10 +702,18 @@ class Window(QMainWindow):
         self.m_DataCollector.add_rounds_number(int(self.m_Repeat))
         self.backend.signal_get_current_algorithm.emit()
 
+                        # Taking the data from algorithms combobox
+        algorithms = [
+            self.select_algorithm_combo.itemText(i)
+            for i in range(self.select_algorithm_combo.count())
+        ]
+
         for amount in range(self.m_Repeat):
             if not self.m_ToCompareCoverage and not self.m_ToCompareRuntimeStats:
 
                 self.backend.signal_run_simulation.emit()
+
+                print("Zyje")
 
                 while not self.m_SimulationRoundFinished:
                     sleep(0.15)
@@ -715,12 +722,12 @@ class Window(QMainWindow):
                     sleep(0.15)
 
                 if self.m_ToPlot:
-                    if self.m_CurrentAlgorithm == "naive":
+                    if self.m_CurrentAlgorithm == algorithms[0]:
                         self.m_DataCollector.add_naive_round_data(self.m_NaiveRoundData)
                         self.m_DataCollector.add_naive_coverage_data(
                             self.m_NaiveCoverageData
                         )
-                    if self.m_CurrentAlgorithm == "pso":
+                    if self.m_CurrentAlgorithm == algorithms[1]:
                         self.m_DataCollector.add_pso_round_data(self.m_psoRoundData)
                         self.m_DataCollector.add_pso_coverage_data(
                             self.m_PsoCoverageData
@@ -734,14 +741,6 @@ class Window(QMainWindow):
                 self.m_NaiveCoverageData.clear()
 
             else:
-                print("Here?")
-
-                # Taking the data from algorithms combobox
-                algorithms = [
-                    self.select_algorithm_combo.itemText(i)
-                    for i in range(self.select_algorithm_combo.count())
-                ]
-
                 for index in range(len(algorithms)):
                     self.set_algorithm(index)
                     
@@ -755,12 +754,12 @@ class Window(QMainWindow):
                     # Continues with another round
                     self.m_SimulationRoundFinished = True
 
-                    if algorithms[index] == "naive":
+                    if algorithms[index] == algorithms[0]:
                         self.m_DataCollector.add_naive_round_data(self.m_NaiveRoundData)
                         self.m_DataCollector.add_naive_coverage_data(
                             self.m_NaiveCoverageData
                         )
-                    if algorithms[index] == "pso":
+                    if algorithms[index] == algorithms[1]:
                         self.m_DataCollector.add_pso_round_data(self.m_psoRoundData)
                         self.m_DataCollector.add_pso_coverage_data(
                             self.m_PsoCoverageData

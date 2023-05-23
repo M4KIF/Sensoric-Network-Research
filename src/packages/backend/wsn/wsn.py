@@ -300,7 +300,7 @@ class SensoricNetwork(QObject):
         ###############################
 
         # List containing the names of the implemented approaches to improving the lifetime of a WSN
-        self.ml_Algorithms = ["naive", "pso"]
+        self.ml_Algorithms = ["Naiwny", "PSO"]
 
         # Runtime speed x times faster than real
         self.ml_RuntimeSpeed = ["100", "500", "1000", "10000"]
@@ -386,7 +386,7 @@ class SensoricNetwork(QObject):
         #################
 
         # Max iterations of the PSO algorithm, should be 2500
-        self.mv_MaxIteration = 2500
+        self.mv_MaxIteration = 100
 
         # Currently used algorithm
         self.mv_CurrentAlgorithm = self.ml_Algorithms[0]
@@ -799,7 +799,6 @@ class SensoricNetwork(QObject):
             node.add_sink_node(sink)
 
             if id(node) == id(sink):
-                print("Tak bylo")
                 node.mb_Sink = True
 
         # Adding the closest neighbours to the node within 100m
@@ -1324,10 +1323,10 @@ class SensoricNetwork(QObject):
         # Calculating the ideal value of circular areas for this network
         C = self.calculate_optimal_clasters_amount(
             radius_start=radius_min,
-            radius_max=radius_max,
+            radius_max=math.sqrt(self.mv_AreaPolygon.area/(math.pi*self.mv_NodeAmount)),
             dist_max=dis_max,
             area=self.mv_AreaPolygon.area,
-            h_value=1,
+            h_value=2.5,
         )
 
         # List of all particles
@@ -1426,7 +1425,7 @@ class SensoricNetwork(QObject):
             # Discarding values that don't meet the criteria
             for particle in gbest_values:
                 # If the ratio of intersected nodes to all nodes is to0 high, discards the candidate
-                if self.IoU(particle, particles, node_set) < 0.70:
+                if self.IoU(particle, particles, node_set) < 0.75:
                     ch_area_candidates.append(particle)
 
             # Searching for the CH nodes in the CH candidate areas
@@ -1563,7 +1562,7 @@ class SensoricNetwork(QObject):
                                 value = self.hop_weight(head, hop)
 
                                 # If the temporal tuple is empty
-                                if next_hop_tuple[1] == None:
+                                if next_hop_tuple[1] is None:
                                     temp = (hop, value)
                                     next_hop_tuple = temp
                                     continue
@@ -1694,8 +1693,6 @@ class SensoricNetwork(QObject):
 
             self.signal_send_active_nodes.emit(self.mv_ActiveNodes)
             self.mv_LND += 1
-            print(self.mv_LND)
-            print(self.mv_ActiveNodes)
 
         ########################################
 
